@@ -116,4 +116,9 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // 🔥 Firebase Auth için gerekli
+    implementation 'com.google.firebase:firebase-auth'
 }
+
+apply plugin: 'com.google.gms.google-services'
