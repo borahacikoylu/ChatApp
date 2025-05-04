@@ -1,22 +1,43 @@
-import { createContext } from "react";
-import { useState } from "react";
-import React, { useContext } from 'react';
-
+import { createContext, useState } from "react";
 
 export const GlobalContext = createContext(null);
 
-
 function GlobalState({ children }) {
-    const [showLoginView, setshowLoginView] = useState(false);
-    const [currentUserName, setCurrentUserName] = useState('');
+    const [showLoginView, setShowLoginView] = useState(false);
+    const [currentUserName, setCurrentUserName] = useState("");
     const [currentUser, setCurrentUser] = useState("");
     const [allUsers, setAllUsers] = useState([]);
+    const [allChatRooms, setAllChatRooms] = useState([]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [currentGroupName, setCurrentGroupName] = useState("");
+    const [allChatMessages, setAllChatMessages] = useState([]);
+    const [currentChatMesage, setCurrentChatMessage] = useState('')
+
     return (
-        <GlobalContext.Provider value={{ showLoginView, setshowLoginView, currentUserName, setCurrentUserName, currentUser, setCurrentUser, allUsers, setAllUsers }}>
+        <GlobalContext.Provider
+            value={{
+                showLoginView,
+                setShowLoginView,
+                currentUserName,
+                setCurrentUserName,
+                currentUser,
+                setCurrentUser,
+                allUsers,
+                setAllUsers,
+                allChatRooms,
+                setAllChatRooms,
+                modalVisible,
+                setModalVisible,
+                currentGroupName,
+                setCurrentGroupName,
+                allChatMessages,
+                setAllChatMessages,
+                currentChatMesage, setCurrentChatMessage
+            }}
+        >
             {children}
         </GlobalContext.Provider>
     );
 }
-
 
 export default GlobalState;
