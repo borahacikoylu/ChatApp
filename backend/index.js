@@ -52,7 +52,32 @@ app.post("/login", async (req, res) => {
     res.json({ message: "Giriş başarılı", user: rows[0] });
 });
 
-// SOCKET.IO kısmı
+// Sohbet listesi
+app.get("/my-conversations", async (req, res) => {
+    const { username } = req.query;
+    if (!username) return res.status(400).json({ message: "Username gerekli" });
+
+    try {
+        const [[user]] = await db.execute("SELECT id FROM users WHERE username = ?", [username]);
+        if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+
+        const [rows] = await db.execute(`
+            SELECT c.id AS conversation_id,
+                   u.username AS partner_username
+            FROM conversations c
+            JOIN users u ON (u.id = IF(c.user1_id = ?, c.user2_id, c.user1_id))
+            WHERE c.user1_id = ? OR c.user2_id = ?
+        `, [user.id, user.id, user.id]);
+
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Sunucu hatası" });
+    }
+});
+
+
+// SOCKET.IO
 const onlineUsers = new Map();
 
 io.on("connection", (socket) => {
@@ -61,6 +86,22 @@ io.on("connection", (socket) => {
     socket.on("login", (username) => {
         console.log("🔐 Kullanıcı giriş yaptı:", username);
         onlineUsers.set(username, socket.id);
+    });
+
+    socket.on("join_conversation", async (conversationId) => {
+        try {
+            socket.join(`conversation_${conversationId}`);
+            console.log(`➕ ${socket.id} joined conversation_${conversationId}`);
+
+            const [messages] = await db.execute(
+                "SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ASC",
+                [conversationId]
+            );
+
+            socket.emit("conversation_history", messages);
+        } catch (err) {
+            console.error("❌ join_conversation hatası:", err);
+        }
     });
 
     socket.on("start_conversation", async ({ fromUser, toUser }) => {
@@ -104,6 +145,8 @@ io.on("connection", (socket) => {
 
     socket.on("send_message", async ({ conversationId, fromUser, message }) => {
         try {
+            console.log("📩 Yeni mesaj:", { conversationId, fromUser, message });
+
             const [[sender]] = await db.execute("SELECT id FROM users WHERE username = ?", [fromUser]);
             if (!sender) return;
 

@@ -2,7 +2,6 @@ import { useContext, useEffect } from "react";
 import {
     FlatList,
     Pressable,
-    StatusBar,
     StyleSheet,
     Text,
     View,
@@ -10,8 +9,9 @@ import {
 import { GlobalContext } from "../context";
 import { AntDesign } from "@expo/vector-icons";
 import Chatcomponent from "../components/Chatcomponent";
-import NewGroupModal from "../components/Modal";
-import { socket } from "../utils";
+import NewGroupModal from "../components/NewChatModal"; // istersen NewChatModal yap
+import { socket, BaseUrl } from "../utils";
+
 export default function Chatscreen({ navigation }) {
     const {
         currentUser,
@@ -23,19 +23,23 @@ export default function Chatscreen({ navigation }) {
         setShowLoginView,
     } = useContext(GlobalContext);
 
-    useEffect(() => {
-        socket.emit("getAllGroups");
-
-        socket.on("groupList", (groups) => {
-            console.log(groups, 'hhhhhhhhhhhhhhhhhhhhhhh');
-            setAllChatRooms(groups);
-        });
-    }, [socket]);
-
     function handleLogout() {
         setCurrentUser("");
         setShowLoginView(false);
     }
+
+    useEffect(() => {
+        if (!currentUser) return;
+
+        socket.emit("login", currentUser);
+
+        fetch(`${BaseUrl}/my-conversations?username=${currentUser}`)
+            .then((res) => res.json())
+            .then((data) => {
+                setAllChatRooms(data); // [{ conversation_id, partner_username }]
+            })
+            .catch((err) => console.error("Sohbet listesi alınamadı", err));
+    }, [currentUser]);
 
     useEffect(() => {
         if (currentUser.trim() === "") navigation.navigate("Homescreen");
@@ -51,22 +55,38 @@ export default function Chatscreen({ navigation }) {
                     </Pressable>
                 </View>
             </View>
+
             <View style={styles.listContainer}>
                 {allChatRooms && allChatRooms.length > 0 ? (
                     <FlatList
                         data={allChatRooms}
-                        renderItem={({ item }) => <Chatcomponent item={item} />}
-                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                            <Pressable
+                                onPress={() =>
+                                    navigation.navigate("Messagescreen", {
+                                        conversationId: item.conversation_id,
+                                        partnerUsername: item.partner_username,
+                                    })
+                                }
+                            >
+                                <Chatcomponent item={item} />
+                            </Pressable>
+                        )}
+                        keyExtractor={(item) => item.conversation_id.toString()}
                     />
-                ) : null}
+                ) : (
+                    <Text style={{ textAlign: "center", marginTop: 20 }}>
+                        No conversations yet.
+                    </Text>
+                )}
             </View>
+
             <View style={styles.bottomContainer}>
                 <Pressable onPress={() => setModalVisible(true)} style={styles.button}>
-                    <View>
-                        <Text style={styles.buttonText}>Create New Group</Text>
-                    </View>
+                    <Text style={styles.buttonText}>Start New Chat</Text>
                 </Pressable>
             </View>
+
             {modalVisible && <NewGroupModal />}
         </View>
     );

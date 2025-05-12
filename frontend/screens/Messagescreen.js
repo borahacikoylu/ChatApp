@@ -1,4 +1,4 @@
-import { useContext, useEffect, useLayoutEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
     FlatList,
     Keyboard,
@@ -12,77 +12,78 @@ import { GlobalContext } from "../context";
 import Messagecomponent from "../components/Messagecomponent";
 import { socket } from "../utils/index";
 
-export default function Messagescreen({ navigation, route }) {
-    const { currentGroupName, currentGroupID } = route.params;
+export default function Messagescreen({ route }) {
+    const { conversationId, partnerUsername } = route.params;
     const {
-        allChatMessages,
-        setAllChatMessages,
         currentUser,
+        currentUserId,
         currentChatMesage,
         setCurrentChatMessage,
     } = useContext(GlobalContext);
 
-    function handleAddNewMessage() {
-        const timeData = {
-            hr:
-                new Date().getHours() < 10
-                    ? `0${new Date().getHours()}`
-                    : new Date().getHours(),
-            mins:
-                new Date().getMinutes() < 10
-                    ? `0${new Date().getMinutes()}`
-                    : new Date().getMinutes(),
-        };
+    const [allChatMessages, setAllChatMessages] = useState([]);
 
-        if (currentUser) {
-            socket.emit("newChatMessage", {
-                currentChatMesage,
-                groupIdentifier: currentGroupID,
-                currentUser,
-                timeData,
-            });
+    const handleAddNewMessage = () => {
+        if (!currentChatMesage.trim()) return;
 
-            setCurrentChatMessage("");
-            Keyboard.dismiss();
-        }
-    }
+        socket.emit("send_message", {
+            fromUser: currentUser,
+            conversationId,
+            message: currentChatMesage,
+        });
 
+        setCurrentChatMessage("");
+        Keyboard.dismiss();
+    };
 
     useEffect(() => {
-        socket.emit('findGroup', currentGroupID)
-        socket.on('foundGroup', (allChats) => setAllChatMessages(allChats))
-    }, [socket])
+        // ➕ Konuşma odasına katıl
+        socket.emit("join_conversation", conversationId);
 
+        // 📜 Geçmiş mesajları çek
+        socket.on("conversation_history", (messages) => {
+            console.log("📜 Mesaj geçmişi:", messages);
+            setAllChatMessages(messages);
+        });
+
+        // 📩 Yeni mesaj geldiğinde ekle
+        socket.on("new_message", (msg) => {
+            console.log("📩 Yeni mesaj:", msg);
+            setAllChatMessages((prev) => [...prev, msg]);
+        });
+
+        // Temizlik
+        return () => {
+            socket.off("conversation_history");
+            socket.off("new_message");
+        };
+    }, [conversationId]);
 
     return (
         <View style={styles.wrapper}>
-            <View
-                style={[styles.wrapper, { paddingVertical: 15, paddingHorizontal: 10 }]}
-            >
-                {allChatMessages && allChatMessages[0] ? (
-                    <FlatList
-                        data={allChatMessages}
-                        renderItem={({ item }) => (
-                            <Messagecomponent item={item} currentUser={currentUser} />
-                        )}
-                        keyExtractor={(item) => item.id}
-                    />
-                ) : (
-                    ""
-                )}
+            <View style={styles.chatArea}>
+                <FlatList
+                    data={allChatMessages}
+                    renderItem={({ item }) => (
+                        <Messagecomponent
+                            item={item}
+                            currentUserId={currentUserId}
+                        />
+                    )}
+                    keyExtractor={(item) => item.id.toString()}
+                />
             </View>
+
             <View style={styles.messageInputContainer}>
                 <TextInput
                     style={styles.messageInput}
                     value={currentChatMesage}
-                    onChangeText={(value) => setCurrentChatMessage(value)}
-                    placeholder="Enter your message"
+                    onChangeText={setCurrentChatMessage}
+                    placeholder={`Mesaj gönder (${partnerUsername})`}
                 />
 
                 <Pressable onPress={handleAddNewMessage} style={styles.button}>
-                    <View>
-                        <Text style={styles.buttonText}>SEND</Text>
-                    </View>
+                    <Text style={styles.buttonText}>SEND</Text>
                 </Pressable>
             </View>
         </View>
@@ -94,30 +95,35 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#eee",
     },
+    chatArea: {
+        flex: 1,
+        paddingVertical: 15,
+        paddingHorizontal: 10,
+    },
     messageInputContainer: {
-        width: "100%",
-        backgroundColor: "#fff",
-        paddingVertical: 30,
-        paddingHorizontal: 15,
-        justifyContent: "center",
         flexDirection: "row",
+        paddingVertical: 20,
+        paddingHorizontal: 15,
+        backgroundColor: "#fff",
+        alignItems: "center",
     },
     messageInput: {
-        borderWidth: 1,
-        padding: 15,
         flex: 1,
+        borderWidth: 1,
+        borderColor: "#ccc",
         borderRadius: 50,
+        padding: 15,
         marginRight: 10,
     },
     button: {
-        width: "30%",
         backgroundColor: "#703efe",
-        alignItems: "center",
-        justifyContent: "center",
         borderRadius: 50,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
     },
     buttonText: {
         color: "#fff",
-        fontSize: 20,
+        fontWeight: "bold",
+        fontSize: 16,
     },
 });

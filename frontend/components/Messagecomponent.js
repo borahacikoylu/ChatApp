@@ -1,53 +1,61 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export default function Messagecomponent({ currentUser, item }) {
-    const currentUserStatus = item.currentUser !== currentUser;
-
-    console.log(currentUserStatus, item);
+export default function Messagecomponent({ currentUserId, item }) {
+    const isOwnMessage = item.sender_id === currentUserId;
+    const formattedTime = item.timestamp
+        ? new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : "";
 
     return (
-        <View style={currentUserStatus ? {} : { alignItems: "flex-end" }}>
-            <View style={styles.messageItemWrapper}>
-                <View style={styles.messageItemInnerWrapper}>
-                    <View
-                        style={
-                            currentUserStatus
-                                ? styles.messageItem
-                                : [styles.messageItem, { backgroundColor: "#703efe" }]
-                        }
-                    >
-                        <Text
-                            style={
-                                currentUserStatus ? { color: "#000" } : { color: "#e5c1fe" }
-                            }
-                        >
-                            {item.text}
-                        </Text>
-                    </View>
-                </View>
-                <Text style={styles.messageTime}>{item.time}</Text>
+        <View style={[styles.messageWrapper, isOwnMessage ? styles.right : styles.left]}>
+            <View
+                style={[
+                    styles.messageBubble,
+                    isOwnMessage ? styles.ownBubble : styles.otherBubble,
+                ]}
+            >
+                <Text style={isOwnMessage ? styles.ownText : styles.otherText}>
+                    {item.text}
+                </Text>
             </View>
+            <Text style={styles.messageTime}>{formattedTime}</Text>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    messageItemWrapper: {
-        maxWidth: "50%",
+    messageWrapper: {
+        maxWidth: "70%",
         marginBottom: 15,
     },
-    messageItemInnerWrapper: {
-        flexDirection: "row",
-        alignItems: "center",
+    left: {
+        alignSelf: "flex-start",
     },
-    messageItem: {
-        width: "100%",
-        backgroundColor: "#ffffff",
-        padding: 20,
-        borderRadius: 10,
-        marginBottom: 2,
+    right: {
+        alignSelf: "flex-end",
+    },
+    messageBubble: {
+        padding: 15,
+        borderRadius: 15,
+    },
+    ownBubble: {
+        backgroundColor: "#703efe",
+    },
+    otherBubble: {
+        backgroundColor: "#f2f2f2",
+    },
+    ownText: {
+        color: "#fff",
+        fontSize: 15,
+    },
+    otherText: {
+        color: "#000",
+        fontSize: 15,
     },
     messageTime: {
-        marginLeft: 10
-    }
+        fontSize: 12,
+        opacity: 0.5,
+        marginTop: 2,
+        textAlign: "right",
+    },
 });

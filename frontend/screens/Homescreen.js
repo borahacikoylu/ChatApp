@@ -11,6 +11,7 @@ import {
 import homeImage from "../assets/home-image.jpg";
 import { useContext, useEffect } from "react";
 import { GlobalContext } from "../context";
+import { BaseUrl } from "../utils";
 
 export default function Homescreen({ navigation }) {
     const {
@@ -20,45 +21,47 @@ export default function Homescreen({ navigation }) {
         setCurrentUserName,
         currentUser,
         setCurrentUser,
-        allUsers,
-        setAllUsers,
+        setCurrentUserId, // ✅ kullanıcı ID'sini setleyeceğiz
     } = useContext(GlobalContext);
 
-    function handleRegisterAndSignIn(isLogin) {
-        if (currentUserName.trim() !== "") {
-            const index = allUsers.findIndex(
-                (userItem) => userItem === currentUserName
-            );
-
-            if (isLogin) {
-                if (index === -1) {
-                    Alert.alert("Please register first");
-                } else {
-                    setCurrentUser(currentUserName);
-                }
-            } else {
-                if (index === -1) {
-                    allUsers.push(currentUserName);
-                    setAllUsers(allUsers);
-                    setCurrentUser(currentUserName);
-                } else {
-                    Alert.alert("Already registered ! Please login");
-                }
-            }
-
-            setCurrentUserName("");
-        } else {
+    async function handleRegisterAndSignIn(isLogin) {
+        if (currentUserName.trim() === "") {
             Alert.alert("User name field is empty");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${BaseUrl}/${isLogin ? "login" : "register"}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: currentUserName,
+                    password: "1234",
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setCurrentUser(data.user.username);     // ✅ kullanıcı adı
+                setCurrentUserId(data.user.id);         // ✅ kullanıcı ID
+                setCurrentUserName("");
+            } else {
+                Alert.alert(data.message || "İşlem başarısız");
+            }
+        } catch (err) {
+            console.error(err);
+            Alert.alert("Sunucuya bağlanılamadı.");
         }
 
         Keyboard.dismiss();
     }
 
     useEffect(() => {
-        if (currentUser.trim() !== "") navigation.navigate("Chatscreen");
+        if (currentUser.trim() !== "") {
+            navigation.navigate("Chatscreen");
+        }
     }, [currentUser]);
-
-    console.log(allUsers, currentUser);
 
     return (
         <View style={styles.mainWrapper}>
@@ -81,23 +84,19 @@ export default function Homescreen({ navigation }) {
                                 onPress={() => handleRegisterAndSignIn(false)}
                                 style={styles.button}
                             >
-                                <View>
-                                    <Text style={styles.buttonText}>Register</Text>
-                                </View>
+                                <Text style={styles.buttonText}>Register</Text>
                             </Pressable>
                             <Pressable
                                 onPress={() => handleRegisterAndSignIn(true)}
                                 style={styles.button}
                             >
-                                <View>
-                                    <Text style={styles.buttonText}>Login</Text>
-                                </View>
+                                <Text style={styles.buttonText}>Login</Text>
                             </Pressable>
                         </View>
                     </View>
                 ) : (
                     <View style={styles.infoBlock}>
-                        <Text style={styles.heading}>Connect , Grow and Inspire</Text>
+                        <Text style={styles.heading}>Connect, Grow and Inspire</Text>
                         <Text style={styles.subHeading}>
                             Connect people around the world for free
                         </Text>
@@ -105,9 +104,7 @@ export default function Homescreen({ navigation }) {
                             style={styles.button}
                             onPress={() => setShowLoginView(true)}
                         >
-                            <View>
-                                <Text style={styles.buttonText}>Get Started</Text>
-                            </View>
+                            <Text style={styles.buttonText}>Get Started</Text>
                         </Pressable>
                     </View>
                 )}

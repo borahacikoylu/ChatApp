@@ -1,39 +1,31 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import { useContext, useEffect } from "react";
-import { GlobalContext } from "../context";
 import { useNavigation } from "@react-navigation/native";
 
 export default function Chatcomponent({ item }) {
     const navigation = useNavigation();
 
-    console.log(item.messages[item.messages.length - 1]);
-
-
-
-    function handleNavigateToMessageScreen() {
+    const handleNavigateToMessageScreen = () => {
         navigation.navigate("Messagescreen", {
-            currentGroupName: item.currentGroupName,
-            currentGroupID: item.id,
+            conversationId: item.conversation_id,
+            partnerUsername: item.partner_username,
         });
-    }
+    };
 
     return (
         <Pressable style={styles.chat} onPress={handleNavigateToMessageScreen}>
             <View style={styles.circle}>
-                <FontAwesome name="group" size={24} color={"black"} />
+                <FontAwesome name="user" size={24} color={"black"} />
             </View>
             <View style={styles.rightContainer}>
                 <View>
-                    <Text style={styles.userName}>{item.currentGroupName}</Text>
+                    <Text style={styles.userName}>{item.partner_username}</Text>
                     <Text style={styles.message}>
-                        {item && item.messages && item.messages.length ? item.messages[item.messages.length - 1].text : "Tap to start messaging"}
+                        Tap to start messaging
                     </Text>
                 </View>
                 <View>
-                    <Text style={styles.time}>
-                        {item && item.messages && item.messages.length ? item.messages[item.messages.length - 1].time : "Now"}
-                    </Text>
+                    <Text style={styles.time}>Now</Text>
                 </View>
             </View>
         </Pressable>
@@ -67,11 +59,12 @@ const styles = StyleSheet.create({
     },
     time: {
         opacity: 0.6,
+        fontSize: 12,
     },
     circle: {
         width: 50,
-        borderRadius: 50,
         height: 50,
+        borderRadius: 25,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 2,

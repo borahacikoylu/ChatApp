@@ -1,5 +1,4 @@
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet } from "react-native";
 import Homescreen from "./screens/Homescreen";
 import Chatscreen from "./screens/Chatscreen";
 import Messagescreen from "./screens/Messagescreen";
@@ -14,8 +13,7 @@ export default function App() {
   return (
     <GlobalState>
       <NavigationContainer>
-        <Stack.Navigator>
-          {/* all the screens here */}
+        <Stack.Navigator initialRouteName="Homescreen">
           <Stack.Screen
             name="Homescreen"
             component={Homescreen}
@@ -26,19 +24,20 @@ export default function App() {
             component={Chatscreen}
             options={{ headerShown: false }}
           />
-          <Stack.Screen name="Messagescreen" component={Messagescreen} />
+          <Stack.Screen
+            name="Messagescreen"
+            component={Messagescreen}
+            options={{
+              headerTitle: "Chat",
+              headerBackTitle: "Back",
+              headerStyle: { backgroundColor: "#703efe" },
+              headerTintColor: "#fff",
+              headerTitleStyle: { fontWeight: "bold" },
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
       <StatusBar hidden={true} />
     </GlobalState>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

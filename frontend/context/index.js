@@ -6,12 +6,11 @@ function GlobalState({ children }) {
     const [showLoginView, setShowLoginView] = useState(false);
     const [currentUserName, setCurrentUserName] = useState("");
     const [currentUser, setCurrentUser] = useState("");
-    const [allUsers, setAllUsers] = useState([]);
+    const [currentUserId, setCurrentUserId] = useState(null); // ✅ eklendi
     const [allChatRooms, setAllChatRooms] = useState([]);
     const [modalVisible, setModalVisible] = useState(false);
-    const [currentGroupName, setCurrentGroupName] = useState("");
     const [allChatMessages, setAllChatMessages] = useState([]);
-    const [currentChatMesage, setCurrentChatMessage] = useState('')
+    const [currentChatMesage, setCurrentChatMessage] = useState("");
 
     return (
         <GlobalContext.Provider
@@ -22,17 +21,16 @@ function GlobalState({ children }) {
                 setCurrentUserName,
                 currentUser,
                 setCurrentUser,
-                allUsers,
-                setAllUsers,
+                currentUserId,              // ✅ eklendi
+                setCurrentUserId,           // ✅ eklendi
                 allChatRooms,
                 setAllChatRooms,
                 modalVisible,
                 setModalVisible,
-                currentGroupName,
-                setCurrentGroupName,
                 allChatMessages,
                 setAllChatMessages,
-                currentChatMesage, setCurrentChatMessage
+                currentChatMesage,
+                setCurrentChatMessage,
             }}
         >
             {children}
