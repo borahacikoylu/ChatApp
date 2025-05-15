@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import {
     FlatList,
     Keyboard,
@@ -22,6 +22,7 @@ export default function Messagescreen({ route }) {
     } = useContext(GlobalContext);
 
     const [allChatMessages, setAllChatMessages] = useState([]);
+    const flatListRef = useRef(null);
 
     const handleAddNewMessage = () => {
         if (!currentChatMesage.trim()) return;
@@ -40,7 +41,7 @@ export default function Messagescreen({ route }) {
         // ➕ Konuşma odasına katıl
         socket.emit("join_conversation", conversationId);
 
-        // 📜 Geçmiş mesajları çek
+        // 📜 Geçmiş mesajları çekr
         socket.on("conversation_history", (messages) => {
             console.log("📜 Mesaj geçmişi:", messages);
             setAllChatMessages(messages);
@@ -59,10 +60,17 @@ export default function Messagescreen({ route }) {
         };
     }, [conversationId]);
 
+    useEffect(() => {
+        if (allChatMessages.length > 0 && flatListRef.current) {
+            flatListRef.current.scrollToEnd({ animated: true });
+        }
+    }, [allChatMessages]);
+
     return (
         <View style={styles.wrapper}>
             <View style={styles.chatArea}>
                 <FlatList
+                    ref={flatListRef}
                     data={allChatMessages}
                     renderItem={({ item }) => (
                         <Messagecomponent
