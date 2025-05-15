@@ -22,6 +22,8 @@ export default function Homescreen({ navigation }) {
         currentUser,
         setCurrentUser,
         setCurrentUserId, // ✅ kullanıcı ID'sini setleyeceğiz
+        password,
+        setPassword,
     } = useContext(GlobalContext);
 
     async function handleRegisterAndSignIn(isLogin) {
@@ -36,7 +38,7 @@ export default function Homescreen({ navigation }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     username: currentUserName,
-                    password: "1234",
+                    password: password,
                 }),
             });
 
@@ -77,6 +79,14 @@ export default function Homescreen({ navigation }) {
                                 style={styles.loginInput}
                                 onChangeText={(value) => setCurrentUserName(value)}
                                 value={currentUserName}
+                            />
+                            <TextInput
+                                autoCorrect={false}
+                                placeholder="Enter your password"
+                                style={styles.loginInput}
+                                onChangeText={(value) => setPassword(value)}
+                                value={password}
+                                secureTextEntry={true}
                             />
                         </View>
                         <View style={styles.buttonWrapper}>

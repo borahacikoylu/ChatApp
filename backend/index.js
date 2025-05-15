@@ -38,7 +38,10 @@ app.post("/register", async (req, res) => {
         return res.status(409).json({ message: "Kullanıcı zaten var" });
 
     await db.execute("INSERT INTO users (username, password) VALUES (?, ?)", [username, password]);
-    res.json({ message: "Kayıt başarılı" });
+    
+    // Kullanıcı bilgilerini döndür
+    const [user] = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
+    res.json({ message: "Kayıt başarılı", user: user[0] });
 });
 
 // Kullanıcı giriş

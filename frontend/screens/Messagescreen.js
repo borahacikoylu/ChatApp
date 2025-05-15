@@ -43,13 +43,11 @@ export default function Messagescreen({ route }) {
 
         // 📜 Geçmiş mesajları çekr
         socket.on("conversation_history", (messages) => {
-            console.log("📜 Mesaj geçmişi:", messages);
             setAllChatMessages(messages);
         });
 
         // 📩 Yeni mesaj geldiğinde ekle
         socket.on("new_message", (msg) => {
-            console.log("📩 Yeni mesaj:", msg);
             setAllChatMessages((prev) => [...prev, msg]);
         });
 

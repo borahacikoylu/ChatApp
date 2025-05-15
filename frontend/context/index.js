@@ -11,6 +11,7 @@ function GlobalState({ children }) {
     const [modalVisible, setModalVisible] = useState(false);
     const [allChatMessages, setAllChatMessages] = useState([]);
     const [currentChatMesage, setCurrentChatMessage] = useState("");
+    const [password, setPassword] = useState("");
 
     return (
         <GlobalContext.Provider
@@ -31,6 +32,8 @@ function GlobalState({ children }) {
                 setAllChatMessages,
                 currentChatMesage,
                 setCurrentChatMessage,
+                password,
+                setPassword,
             }}
         >
             {children}
