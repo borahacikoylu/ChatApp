@@ -7,7 +7,10 @@ import {
     Text,
     TextInput,
     View,
+    SafeAreaView,
+    StatusBar,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import homeImage from "../assets/home-image.jpg";
 import { useContext, useEffect } from "react";
 import { GlobalContext } from "../context";
@@ -21,7 +24,7 @@ export default function Homescreen({ navigation }) {
         setCurrentUserName,
         currentUser,
         setCurrentUser,
-        setCurrentUserId, // ✅ kullanıcı ID'sini setleyeceğiz
+        setCurrentUserId,
         password,
         setPassword,
     } = useContext(GlobalContext);
@@ -45,8 +48,8 @@ export default function Homescreen({ navigation }) {
             const data = await response.json();
 
             if (response.ok) {
-                setCurrentUser(data.user.username);     // ✅ kullanıcı adı
-                setCurrentUserId(data.user.id);         // ✅ kullanıcı ID
+                setCurrentUser(data.user.username);
+                setCurrentUserId(data.user.id);
                 setCurrentUserName("");
             } else {
                 Alert.alert(data.message || "İşlem başarısız");
@@ -66,43 +69,50 @@ export default function Homescreen({ navigation }) {
     }, [currentUser]);
 
     return (
-        <View style={styles.mainWrapper}>
-            <ImageBackground source={homeImage} style={styles.homeImage} />
-            <View style={styles.content}>
+        <SafeAreaView style={styles.mainWrapper}>
+            <StatusBar barStyle="light-content" />
+            <LinearGradient
+                colors={['#081344', '#061757']}
+                style={styles.content}
+            >
                 {showLoginView ? (
-                    <View style={styles.infoBlock}>
-                        <View style={styles.loginInputContainer}>
-                            <Text style={styles.heading}>Enter Your User Name</Text>
+                    <View style={styles.loginContainer}>
+                        <Text style={styles.welcomeText}>Welcome Back!</Text>
+                        <Text style={styles.subText}>Please Log into your existing account</Text>
+                        
+                        <View style={styles.inputContainer}>
                             <TextInput
                                 autoCorrect={false}
-                                placeholder="Enter your user name"
-                                style={styles.loginInput}
+                                placeholder="Your Email"
+                                placeholderTextColor="#9DA3B4"
+                                style={styles.input}
                                 onChangeText={(value) => setCurrentUserName(value)}
                                 value={currentUserName}
                             />
+                            
                             <TextInput
                                 autoCorrect={false}
-                                placeholder="Enter your password"
-                                style={styles.loginInput}
+                                placeholder="Your Password"
+                                placeholderTextColor="#9DA3B4"
+                                style={styles.input}
                                 onChangeText={(value) => setPassword(value)}
                                 value={password}
                                 secureTextEntry={true}
                             />
                         </View>
-                        <View style={styles.buttonWrapper}>
-                            <Pressable
-                                onPress={() => handleRegisterAndSignIn(false)}
-                                style={styles.button}
-                            >
-                                <Text style={styles.buttonText}>Register</Text>
-                            </Pressable>
-                            <Pressable
-                                onPress={() => handleRegisterAndSignIn(true)}
-                                style={styles.button}
-                            >
-                                <Text style={styles.buttonText}>Login</Text>
-                            </Pressable>
-                        </View>
+                        
+                        <Pressable
+                            onPress={() => handleRegisterAndSignIn(true)}
+                            style={styles.loginButton}
+                        >
+                            <Text style={styles.loginButtonText}>Log In</Text>
+                        </Pressable>
+                        
+                        <Pressable onPress={() => handleRegisterAndSignIn(false)}>
+                            <Text style={styles.registerText}>
+                                Don't have an account? <Text style={styles.registerLink}>Register</Text>
+                            </Text>
+                        </Pressable>
                     </View>
                 ) : (
                     <View style={styles.infoBlock}>
@@ -118,26 +128,81 @@ export default function Homescreen({ navigation }) {
                         </Pressable>
                     </View>
                 )}
-            </View>
-        </View>
+            </LinearGradient>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     mainWrapper: {
         flex: 1,
-    },
-    homeImage: {
-        width: "100%",
-        flex: 3,
-        justifyContent: "center",
+        backgroundColor: '#061757',
     },
     content: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
         width: "100%",
-        backgroundColor: "#fff",
+        paddingHorizontal: 20,
+    },
+    loginContainer: {
+        width: "100%",
+        alignItems: "center",
+        padding: 20,
+        maxWidth: 350,
+    },
+    welcomeText: {
+        fontSize: 26,
+        fontWeight: "bold",
+        color: "#FFFFFF",
+        marginBottom: 10,
+        textAlign: "center",
+    },
+    subText: {
+        fontSize: 14,
+        color: "#9DA3B4",
+        marginBottom: 30,
+        textAlign: "center",
+    },
+    inputContainer: {
+        width: "100%",
+        marginBottom: 20,
+    },
+    input: {
+        backgroundColor: "rgba(255,255,255,0.08)",
+        borderRadius: 8,
+        padding: 15,
+        marginBottom: 15,
+        color: "#FFFFFF",
+        width: "100%",
+        borderWidth: 0.5,
+        borderColor: "rgba(255,255,255,0.1)",
+    },
+    loginButton: {
+        backgroundColor: "#0CDA6E",
+        padding: 15,
+        borderRadius: 8,
+        width: "100%",
+        marginBottom: 20,
+        shadowColor: "#0CDA6E",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    loginButtonText: {
+        textAlign: "center",
+        color: "#FFFFFF",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+    registerText: {
+        color: "#9DA3B4",
+        fontSize: 14,
+    },
+    registerLink: {
+        color: "#FFFFFF",
+        fontWeight: "bold",
     },
     infoBlock: {
         width: "100%",
@@ -147,34 +212,29 @@ const styles = StyleSheet.create({
     heading: {
         fontSize: 28,
         fontWeight: "bold",
-        color: "#000",
+        color: "#FFFFFF",
         marginBottom: 10,
     },
     subHeading: {
         fontSize: 15,
-        color: "#acacac",
+        color: "#9DA3B4",
         marginBottom: 15,
     },
-    loginInput: {
-        borderRadius: 50,
-        borderWidth: 1,
-        padding: 8,
-    },
     button: {
-        backgroundColor: "#703efe",
+        backgroundColor: "#0CDA6E",
         padding: 15,
         marginVertical: 10,
-        width: "34%",
-        elevation: 1,
-        borderRadius: 50,
-    },
-    buttonWrapper: {
-        flexDirection: "row",
-        gap: 10,
+        width: "60%",
+        borderRadius: 8,
+        shadowColor: "#0CDA6E",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
     },
     buttonText: {
         textAlign: "center",
-        color: "#fff",
+        color: "#FFFFFF",
         fontWeight: "bold",
         fontSize: 15,
     },
