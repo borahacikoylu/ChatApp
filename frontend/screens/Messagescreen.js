@@ -240,79 +240,49 @@ export default function Messagescreen({ route }) {
 
     return (
         <SafeAreaView style={styles.wrapper}>
-            <Animated.View style={[styles.chatHeaderContainer, { opacity: headerOpacity }]}>
-                <View style={styles.chatHeader}>
-                    <View style={styles.userInfoContainer}>
-                        <View style={styles.userAvatar}>
-                            <Text style={styles.userInitial}>
-                                {partnerUsername.charAt(0).toUpperCase()}
-                            </Text>
-                        </View>
-                        <Text style={styles.username}>{partnerUsername}</Text>
-                    </View>
+          <Animated.View style={[styles.chatHeaderContainer, { opacity: headerOpacity }]}>
+            <View style={styles.chatHeader}>
+              <View style={styles.userInfoContainer}>
+                <View style={styles.userAvatar}>
+                  <Text style={styles.userInitial}>
+                    {partnerUsername.charAt(0).toUpperCase()}
+                  </Text>
                 </View>
-            </Animated.View>
-
-            {Platform.OS === 'android' ? (
-                <KeyboardAvoidingView 
-                    style={styles.chatArea}
-                    behavior="height"
-                    keyboardVerticalOffset={100}
-                >
-                    <FlatList
-                        ref={flatListRef}
-                        data={allChatMessages}
-                        renderItem={renderMessageItem}
-                        keyExtractor={(item) => item.id.toString()}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.messageList}
-                        ListEmptyComponent={() => (
-                            <View style={styles.emptyChatContainer}>
-                                <View style={styles.emptyIconContainer}>
-                                    <Ionicons name="chatbubbles-outline" size={60} color="#CCCCCC" />
-                                </View>
-                                <Text style={styles.emptyChatText}>
-                                    Henüz mesaj yok. Konuşmaya başlayın!
-                                </Text>
-                            </View>
-                        )}
-                    />
-                    {renderMessageInput()}
-                </KeyboardAvoidingView>
-            ) : (
-                <>
-                    <View style={styles.chatArea}>
-                        <FlatList
-                            ref={flatListRef}
-                            data={allChatMessages}
-                            renderItem={renderMessageItem}
-                            keyExtractor={(item) => item.id.toString()}
-                            showsVerticalScrollIndicator={false}
-                            contentContainerStyle={styles.messageList}
-                            ListEmptyComponent={() => (
-                                <View style={styles.emptyChatContainer}>
-                                    <View style={styles.emptyIconContainer}>
-                                        <Ionicons name="chatbubbles-outline" size={60} color="#CCCCCC" />
-                                    </View>
-                                    <Text style={styles.emptyChatText}>
-                                        Henüz mesaj yok. Konuşmaya başlayın!
-                                    </Text>
-                                </View>
-                            )}
-                        />
-                    </View>
-
-                    <InputAccessoryView nativeID={inputAccessoryViewID}>
-                        {renderMessageInput()}
-                    </InputAccessoryView>
-
-                    {Platform.OS === 'ios' && (
-                        <View style={styles.messageInputPlaceholder} />
-                    )}
-                </>
-            )}
+                <Text style={styles.username}>{partnerUsername}</Text>
+              </View>
+            </View>
+          </Animated.View>
+      
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+          >
+            <FlatList
+              ref={flatListRef}
+              data={allChatMessages}
+              renderItem={renderMessageItem}
+              keyExtractor={(item) => item.id.toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.messageList}
+              ListEmptyComponent={() => (
+                <View style={styles.emptyChatContainer}>
+                  <View style={styles.emptyIconContainer}>
+                    <Ionicons name="chatbubbles-outline" size={60} color="#CCCCCC" />
+                  </View>
+                  <Text style={styles.emptyChatText}>
+                    Henüz mesaj yok. Konuşmaya başlayın!
+                  </Text>
+                </View>
+              )}
+            />
+      
+            {/* 👇 Bu her platformda çalışır */}
+            {renderMessageInput()}
+          </KeyboardAvoidingView>
         </SafeAreaView>
-    );
+      );
+      
 }
 
 const styles = StyleSheet.create({

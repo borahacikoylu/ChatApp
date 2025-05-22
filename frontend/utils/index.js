@@ -3,12 +3,12 @@ import { io } from "socket.io-client";
 
 // HTTP API istekleri için temel URL
 export const BaseUrl =
-    Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
+    Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://192.168.1.102:3000";
 
-// Socket.io bağlantısı (artık 3000 portundan yapılacak)
+// Socket.io bağlantısı
 export const socket = io(
-    Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000",
+    Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://192.168.1.102:3000",
     {
-        transports: ["websocket"], // bağlantıyı güçlendirir (opsiyonel ama tavsiye edilir)
+        transports: ["websocket"],
     }
 );

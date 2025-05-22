@@ -7,7 +7,9 @@ import {
     Pressable,
     View,
     TextInput,
+    KeyboardAvoidingView,
     Keyboard,
+    Platform,
 } from "react-native";
 import { GlobalContext } from "../context";
 import { socket } from "../utils";
@@ -55,33 +57,42 @@ const NewChatModal = () => {
             visible={modalVisible}
             onRequestClose={() => setModalVisible(false)}
         >
-            <View style={styles.centeredView}>
-                <View style={styles.modalView}>
-                    <Text style={styles.modalText}>Start Chat With</Text>
+            <KeyboardAvoidingView 
+                behavior={Platform.OS === "ios" ? "padding" : "height"} 
+                style={styles.keyboardAvoidingView}
+            >
+                <View style={styles.centeredView}>
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalText}>Start Chat With</Text>
 
-                    <TextInput
-                        autoCorrect={false}
-                        placeholder="Enter username (e.g. emir)"
-                        style={styles.loginInput}
-                        onChangeText={setTargetUsername}
-                        value={targetUsername}
-                    />
+                        <TextInput
+                            autoCorrect={false}
+                            placeholder="Enter username (e.g. emir)"
+                            style={styles.loginInput}
+                            onChangeText={setTargetUsername}
+                            value={targetUsername}
+                            autoFocus={true}
+                        />
 
-                    <View style={styles.buttonWrapper}>
-                        <Pressable onPress={handleStartConversation} style={styles.button}>
-                            <Text style={styles.buttonText}>Start</Text>
-                        </Pressable>
-                        <Pressable onPress={() => setModalVisible(false)} style={styles.button}>
-                            <Text style={styles.buttonText}>Cancel</Text>
-                        </Pressable>
+                        <View style={styles.buttonWrapper}>
+                            <Pressable onPress={handleStartConversation} style={styles.button}>
+                                <Text style={styles.buttonText}>Start</Text>
+                            </Pressable>
+                            <Pressable onPress={() => setModalVisible(false)} style={styles.button}>
+                                <Text style={styles.buttonText}>Cancel</Text>
+                            </Pressable>
+                        </View>
                     </View>
                 </View>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
+    keyboardAvoidingView: {
+        flex: 1,
+    },
     centeredView: {
         flex: 1,
         justifyContent: "center",
@@ -103,28 +114,33 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 10,
         fontWeight: "bold",
+        textAlign: "center",
     },
     loginInput: {
-        borderRadius: 50,
+        borderRadius: 10,
         borderWidth: 1,
-        padding: 10,
-        marginBottom: 15,
+        borderColor: '#ddd',
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        marginBottom: 20,
+        fontSize: 16,
     },
     buttonWrapper: {
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: 10,
     },
     button: {
         flex: 1,
-        backgroundColor: "#703efe",
-        padding: 12,
-        borderRadius: 50,
+        backgroundColor: "#5D5FEF",
+        paddingVertical: 12,
+        borderRadius: 25,
         alignItems: "center",
+        marginHorizontal: 5,
     },
     buttonText: {
         color: "#fff",
         fontWeight: "bold",
+        fontSize: 16,
     },
 });
 
