@@ -1,19 +1,9 @@
-import { Pressable, StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text, View, Image } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 
 export default function Chatcomponent({ item }) {
-    const navigation = useNavigation();
-
-    const handleNavigateToMessageScreen = () => {
-        navigation.navigate("Messagescreen", {
-            conversationId: item.conversation_id,
-            partnerUsername: item.partner_username,
-        });
-    };
-
     return (
-        <Pressable style={styles.chat} onPress={handleNavigateToMessageScreen}>
+        <View style={styles.chat}>
             {item.partner_profile_image_url ? (
                 <Image source={{ uri: item.partner_profile_image_url }} style={styles.avatar} />
             ) : (
@@ -24,15 +14,13 @@ export default function Chatcomponent({ item }) {
             <View style={styles.rightContainer}>
                 <View>
                     <Text style={styles.userName}>{item.partner_username}</Text>
-                    <Text style={styles.message}>
-                        Tap to start messaging
-                    </Text>
+                    <Text style={styles.message}>Tap to start messaging</Text>
                 </View>
                 <View>
                     <Text style={styles.time}>Now</Text>
                 </View>
             </View>
-        </Pressable>
+        </View>
     );
 }
 

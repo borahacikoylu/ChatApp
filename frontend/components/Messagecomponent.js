@@ -1,48 +1,75 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Image } from "react-native";
 
-export default function Messagecomponent({ currentUserId, item }) {
+export default function Messagecomponent({ currentUserId, item, currentUserImage, partnerUserImage }) {
     const isOwnMessage = item.sender_id === currentUserId;
     const formattedTime = item.timestamp
         ? new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
         : "";
 
+    const userImage = isOwnMessage ? currentUserImage : partnerUserImage;
+
     return (
-        <View style={[styles.messageWrapper, isOwnMessage ? styles.right : styles.left]}>
-            <View
-                style={[
-                    styles.messageBubble,
-                    isOwnMessage ? styles.ownBubble : styles.otherBubble,
-                ]}
-            >
-                <Text style={isOwnMessage ? styles.ownText : styles.otherText}>
-                    {item.text}
-                </Text>
+        <View style={[styles.messageContainer, isOwnMessage ? styles.rightAlign : styles.leftAlign]}>
+            {!isOwnMessage && userImage && (
+                <Image source={{ uri: userImage }} style={styles.avatar} />
+            )}
+            <View style={[styles.messageWrapper, isOwnMessage ? styles.right : styles.left]}>
+                <View
+                    style={[
+                        styles.messageBubble,
+                        isOwnMessage ? styles.ownBubble : styles.otherBubble,
+                    ]}
+                >
+                    <Text style={isOwnMessage ? styles.ownText : styles.otherText}>
+                        {item.text}
+                    </Text>
+                </View>
+                <Text style={[styles.messageTime, isOwnMessage ? styles.timeRight : styles.timeLeft]}>{formattedTime}</Text>
             </View>
-            <Text style={styles.messageTime}>{formattedTime}</Text>
+            {isOwnMessage && userImage && (
+                <Image source={{ uri: userImage }} style={styles.avatar} />
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    messageWrapper: {
-        maxWidth: "70%",
+    messageContainer: {
+        flexDirection: "row",
+        alignItems: "flex-end",
         marginBottom: 15,
+        maxWidth: "85%",
     },
-    left: {
+    leftAlign: {
         alignSelf: "flex-start",
     },
-    right: {
+    rightAlign: {
         alignSelf: "flex-end",
     },
-    messageBubble: {
-        padding: 15,
+    avatar: {
+        width: 30,
+        height: 30,
         borderRadius: 15,
+        marginHorizontal: 8,
+        marginBottom: 5,
+    },
+    messageWrapper: {
+        maxWidth: "100%",
+    },
+    left: {
+    },
+    right: {
+    },
+    messageBubble: {
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        borderRadius: 18,
     },
     ownBubble: {
         backgroundColor: "#703efe",
     },
     otherBubble: {
-        backgroundColor: "#f2f2f2",
+        backgroundColor: "#E5E5EA",
     },
     ownText: {
         color: "#fff",
@@ -53,9 +80,16 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     messageTime: {
-        fontSize: 12,
-        opacity: 0.5,
-        marginTop: 2,
+        fontSize: 11,
+        opacity: 0.6,
+        marginTop: 4,
+    },
+    timeLeft: {
+        textAlign: "left",
+        marginLeft: 5,
+    },
+    timeRight: {
         textAlign: "right",
+        marginRight: 5,
     },
 });

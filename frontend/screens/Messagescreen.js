@@ -13,19 +13,22 @@ import {
     InputAccessoryView,
     Animated,
     Easing,
+    Image
 } from "react-native";
 import { GlobalContext } from "../context";
 import Messagecomponent from "../components/Messagecomponent";
 import { socket } from "../utils/index";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function Messagescreen({ route }) {
-    const { conversationId, partnerUsername } = route.params;
+export default function Messagescreen({ route, navigation }) {
+    console.log("[Messagescreen] Received route params:", JSON.stringify(route.params));
+    const { conversationId, partnerUsername, partner_profile_image_url } = route.params;
     const {
         currentUser,
         currentUserId,
         currentChatMesage,
         setCurrentChatMessage,
+        currentUserImage,
     } = useContext(GlobalContext);
 
     const [allChatMessages, setAllChatMessages] = useState([]);
@@ -196,6 +199,8 @@ export default function Messagescreen({ route }) {
                 <Messagecomponent
                     item={item}
                     currentUserId={currentUserId}
+                    currentUserImage={currentUserImage}
+                    partnerUserImage={partner_profile_image_url}
                 />
             </Animated.View>
         );
@@ -242,14 +247,22 @@ export default function Messagescreen({ route }) {
         <SafeAreaView style={styles.wrapper}>
           <Animated.View style={[styles.chatHeaderContainer, { opacity: headerOpacity }]}>
             <View style={styles.chatHeader}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
               <View style={styles.userInfoContainer}>
-                <View style={styles.userAvatar}>
-                  <Text style={styles.userInitial}>
-                    {partnerUsername.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
+                {partner_profile_image_url ? (
+                    <Image source={{ uri: partner_profile_image_url }} style={styles.headerAvatar} />
+                ) : (
+                    <View style={styles.userAvatar}>
+                        <Text style={styles.userInitial}>
+                            {partnerUsername.charAt(0).toUpperCase()}
+                        </Text>
+                    </View>
+                )}
                 <Text style={styles.username}>{partnerUsername}</Text>
               </View>
+              <View style={{width: 24}} />
             </View>
           </Animated.View>
       
@@ -291,38 +304,56 @@ const styles = StyleSheet.create({
         backgroundColor: "#F5F7FA",
     },
     chatHeaderContainer: {
-        backgroundColor: "#5D5FEF",
-        paddingTop: 10,
-        paddingBottom: 15,
+        backgroundColor: '#5D5FEF',
+        paddingTop: Platform.OS === "android" ? 10 : 0, 
+        paddingBottom: 10,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     chatHeader: {
-        paddingHorizontal: 20,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
+        paddingHorizontal: 15,
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        padding: 5,
+        marginRight: 10,
     },
     userInfoContainer: {
         flexDirection: "row",
         alignItems: "center",
+        flex: 1,
+    },
+    headerAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: 10,
     },
     userAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "#3E3F8F",
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "#E0E0E0",
         justifyContent: "center",
         alignItems: "center",
+        marginRight: 10,
     },
     userInitial: {
-        fontSize: 18,
-        fontWeight: "bold",
+        fontSize: 16,
         color: "#FFFFFF",
+        fontWeight: 'bold',
     },
     username: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: "600",
         color: "#FFFFFF",
-        marginLeft: 10,
     },
     chatArea: {
         flex: 1,

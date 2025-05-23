@@ -86,6 +86,7 @@ export default function Chatscreen({ navigation }) {
         fetch(`${BaseUrl}/my-conversations?username=${currentUser}`)
             .then((res) => res.json())
             .then((data) => {
+                console.log("[setAllChatRooms] gelen veri:", data);
                 setAllChatRooms(data); // [{ conversation_id, partner_username }]
             })
             .catch((err) => console.error("Sohbet listesi alınamadı", err));
@@ -170,6 +171,7 @@ export default function Chatscreen({ navigation }) {
             navigation.navigate("Messagescreen", {
                 conversationId: item.conversation_id,
                 partnerUsername: item.partner_username,
+                partner_profile_image_url: item.partner_profile_image_url, // ✅ EKLENDİ
             });
         });
     };

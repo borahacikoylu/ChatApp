@@ -73,6 +73,8 @@ app.get("/my-conversations", async (req, res) => {
             WHERE c.user1_id = ? OR c.user2_id = ?
         `, [user.id, user.id, user.id]);
 
+        console.log("[/my-conversations] rows:", rows); // 🔍 BU SATIRI EKLE
+
         res.json(rows);
     } catch (err) {
         console.error(err);
