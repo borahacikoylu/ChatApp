@@ -66,7 +66,8 @@ app.get("/my-conversations", async (req, res) => {
 
         const [rows] = await db.execute(`
             SELECT c.id AS conversation_id,
-                   u.username AS partner_username
+                   u.username AS partner_username,
+                   u.profile_image_url AS partner_profile_image_url
             FROM conversations c
             JOIN users u ON (u.id = IF(c.user1_id = ?, c.user2_id, c.user1_id))
             WHERE c.user1_id = ? OR c.user2_id = ?
