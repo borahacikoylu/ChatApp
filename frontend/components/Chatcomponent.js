@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, Image } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -14,9 +14,13 @@ export default function Chatcomponent({ item }) {
 
     return (
         <Pressable style={styles.chat} onPress={handleNavigateToMessageScreen}>
-            <View style={styles.circle}>
-                <FontAwesome name="user" size={24} color={"black"} />
-            </View>
+            {item.partner_profile_image_url ? (
+                <Image source={{ uri: item.partner_profile_image_url }} style={styles.avatar} />
+            ) : (
+                <View style={styles.circle}>
+                    <FontAwesome name="user" size={24} color={"black"} />
+                </View>
+            )}
             <View style={styles.rightContainer}>
                 <View>
                     <Text style={styles.userName}>{item.partner_username}</Text>
@@ -68,6 +72,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 2,
+        borderColor: "#ddd",
+        marginRight: 10,
+    },
+    avatar: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
         marginRight: 10,
     },
 });

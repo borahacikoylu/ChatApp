@@ -185,3 +185,20 @@ io.on("connection", (socket) => {
 server.listen(PORT, () => {
     console.log(`🚀 Sunucu ${PORT} portunda çalışıyor`);
 });
+
+app.post("/update-profile-image", async (req, res) => {
+    const { username, imageUrl } = req.body;
+    if (!username || !imageUrl)
+        return res.status(400).json({ message: "Eksik bilgi" });
+
+    try {
+        await db.execute(
+            "UPDATE users SET profile_image_url = ? WHERE username = ?",
+            [imageUrl, username]
+        );
+        res.json({ message: "Profil fotoğrafı güncellendi" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Sunucu hatası" });
+    }
+});

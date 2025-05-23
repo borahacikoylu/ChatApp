@@ -2,6 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import Homescreen from "./screens/Homescreen";
 import Chatscreen from "./screens/Chatscreen";
 import Messagescreen from "./screens/Messagescreen";
+import Profilescreen from "./screens/Profilescreen"; 
 
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -67,7 +68,7 @@ export default function App() {
           <Stack.Screen
             name="Messagescreen"
             component={Messagescreen}
-            options={({ navigation, route }) => ({
+            options={({ navigation }) => ({
               headerTitle: "",
               headerBackTitle: "Geri",
               headerBackTitleVisible: false,
@@ -82,6 +83,14 @@ export default function App() {
               ),
               animation: 'slide_from_right',
             })}
+          />
+          <Stack.Screen
+            name="Profilescreen"
+            component={Profilescreen} // ✅ Buraya eklendi
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
           />
         </Stack.Navigator>
       </NavigationContainer>

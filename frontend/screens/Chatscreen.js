@@ -216,7 +216,9 @@ export default function Chatscreen({ navigation }) {
                 >
                     <View style={styles.header}>
                         <View style={styles.userInfo}>
-                            <Ionicons name="person-circle-outline" size={30} color="#FFF" />
+                            <TouchableOpacity onPress={() => navigation.navigate("Profilescreen")}>
+                                <Ionicons name="person-circle-outline" size={30} color="#FFF" />
+                            </TouchableOpacity>
                             <Text style={styles.heading}>Merhaba, {currentUser}!</Text>
                         </View>
                         <TouchableOpacity 
