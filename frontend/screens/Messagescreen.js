@@ -22,6 +22,11 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function Messagescreen({ route, navigation }) {
     console.log("[Messagescreen] Received route params:", JSON.stringify(route.params));
+
+    useEffect(() => {
+        navigation.setOptions({ headerShown: false });
+    }, [navigation]);
+
     const { conversationId, partnerUsername, partner_profile_image_url } = route.params;
     const {
         currentUser,
@@ -250,19 +255,18 @@ export default function Messagescreen({ route, navigation }) {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-              <View style={styles.userInfoContainer}>
-                {partner_profile_image_url ? (
-                    <Image source={{ uri: partner_profile_image_url }} style={styles.headerAvatar} />
-                ) : (
-                    <View style={styles.userAvatar}>
-                        <Text style={styles.userInitial}>
-                            {partnerUsername.charAt(0).toUpperCase()}
-                        </Text>
-                    </View>
-                )}
-                <Text style={styles.username}>{partnerUsername}</Text>
-              </View>
-              <View style={{width: 24}} />
+                <View style={styles.partnerInfo}>
+                    {partner_profile_image_url ? (
+                        <Image source={{ uri: partner_profile_image_url }} style={styles.partnerImage} />
+                    ) : (
+                        <View style={styles.partnerImagePlaceholder}>
+                            <Ionicons name="person" size={20} color="#FFF" />
+                        </View>
+                    )}
+                    <Text style={styles.partnerName}>{partnerUsername}</Text>
+                </View>
+                {/* Sağ tarafta boşluk veya başka bir ikon için yer bırakılabilir (geri butonuyla denge için) */}
+                <View style={{ width: styles.backButton?.padding * 2 + 24 || 40 }} /> 
             </View>
           </Animated.View>
       
@@ -322,8 +326,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     backButton: {
-        padding: 5,
-        marginRight: 10,
+        padding: 8,
     },
     userInfoContainer: {
         flexDirection: "row",
@@ -426,5 +429,31 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 4,
         elevation: 2,
+    },
+    partnerInfo: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    partnerImage: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: 8,
+    },
+    partnerImagePlaceholder: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: "rgba(255,255,255,0.3)",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 8,
+    },
+    partnerName: {
+        fontSize: 17,
+        fontWeight: "600",
+        color: "#FFFFFF",
     },
 });
