@@ -180,10 +180,13 @@ io.on("connection", (socket) => {
 
     socket.on("send_message", async ({ conversationId, fromUser, message, imageUrl }) => {
         try {
-            console.log("📩 Yeni mesaj:", { conversationId, fromUser, message, imageUrl });
+            console.log("📩 Yeni mesaj (send_message):", { conversationId, fromUser, message, imageUrl });
 
-            const [[sender]] = await db.execute("SELECT id FROM users WHERE username = ?", [fromUser]);
-            if (!sender) return;
+            const [[sender]] = await db.execute("SELECT id, username, profile_image_url FROM users WHERE username = ?", [fromUser]);
+            if (!sender) {
+                console.error("❌ Mesaj gönderen bulunamadı:", fromUser);
+                return;
+            }
 
             if (!message && !imageUrl) {
                 console.log("Boş mesaj veya fotoğraf gönderilmeye çalışıldı.");
@@ -195,18 +198,62 @@ io.on("connection", (socket) => {
                 [conversationId, sender.id, message || null, imageUrl || null]
             );
 
-            const msgData = {
+            const newMsgData = {
                 id: result.insertId,
-                conversation_id: conversationId,
+                conversation_id: parseInt(conversationId), // Ensure it's a number
                 sender_id: sender.id,
                 text: message || null,
                 image_url: imageUrl || null,
                 timestamp: new Date(),
             };
 
-            io.to(`conversation_${conversationId}`).emit("new_message", msgData);
+            // Odaya yeni mesajı gönder
+            io.to(`conversation_${conversationId}`).emit("new_message", newMsgData);
+            console.log(`[Socket] new_message emitted to room conversation_${conversationId}`);
+
+            // Şimdi her iki katılımcının sohbet listesini güncellemek için `conversation_updated` olayını emit et
+            const [[convoDetails]] = await db.execute("SELECT user1_id, user2_id FROM conversations WHERE id = ?", [conversationId]);
+            if (!convoDetails) {
+                console.error("❌ Konuşma detayları bulunamadı:", conversationId);
+                return;
+            }
+
+            const user1_id = convoDetails.user1_id;
+            const user2_id = convoDetails.user2_id;
+
+            const participants = [
+                { userId: user1_id, partnerId: user2_id },
+                { userId: user2_id, partnerId: user1_id }
+            ];
+
+            for (const p of participants) {
+                const [[participantUser]] = await db.execute("SELECT username FROM users WHERE id = ?", [p.userId]);
+                const [[partnerUser]] = await db.execute("SELECT id, username, profile_image_url FROM users WHERE id = ?", [p.partnerId]);
+
+                if (participantUser && partnerUser) {
+                    const updatedConversationData = {
+                        conversation_id: parseInt(conversationId),
+                        partner_id: partnerUser.id,
+                        partner_username: partnerUser.username,
+                        partner_profile_image_url: partnerUser.profile_image_url,
+                        last_message_text: newMsgData.text,
+                        last_message_image_url: newMsgData.image_url,
+                        last_message_sender_id: newMsgData.sender_id,
+                        last_message_timestamp: newMsgData.timestamp,
+                    };
+                    
+                    const targetSocketId = onlineUsers.get(participantUser.username);
+                    if (targetSocketId) {
+                        io.to(targetSocketId).emit("conversation_updated", updatedConversationData);
+                        console.log(`[Socket] conversation_updated emitted to ${participantUser.username} (socketId: ${targetSocketId}) for conversation ${conversationId}`);
+                    } else {
+                        console.log(`[Socket] ${participantUser.username} çevrimiçi değil, conversation_updated gönderilemedi.`);
+                    }
+                }
+            }
+
         } catch (err) {
-            console.error("❌ send_message hatası:", err);
+            console.error("❌ send_message genel hata:", err);
         }
     });
 

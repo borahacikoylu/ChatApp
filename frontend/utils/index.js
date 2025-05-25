@@ -1,4 +1,4 @@
-/*import { Platform } from "react-native";
+import { Platform } from "react-native";
 import { io } from "socket.io-client";
 
 // HTTP API istekleri için temel URL
@@ -12,8 +12,8 @@ export const socket = io(
         transports: ["websocket"],
     }
 );
-*/
 
+/*
 import { Platform } from "react-native";
 import { io } from "socket.io-client";
 
@@ -25,3 +25,4 @@ export const BaseUrl = LOCAL_HOST_IP;
 export const socket = io(LOCAL_HOST_IP, {
     transports: ["websocket"],
 });
+*/

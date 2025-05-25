@@ -81,37 +81,71 @@ export default function Chatscreen({ navigation }) {
     // Sohbet listesini çeken fonksiyon
     const fetchConversations = useCallback(() => {
         if (!currentUser) return;
-        console.log("[Chatscreen] fetchConversations çağrıldı, kullanıcı:", currentUser);
-
-        socket.emit("login", currentUser);
+        // console.log("[Chatscreen] fetchConversations çağrıldı, kullanıcı:", currentUser);
 
         fetch(`${BaseUrl}/my-conversations?username=${currentUser}`)
             .then((res) => res.json())
             .then((data) => {
-                console.log("[Chatscreen] setAllChatRooms için /my-conversations'dan gelen veri:", data);
-                setAllChatRooms(data); 
+                // console.log("[Chatscreen] setAllChatRooms için /my-conversations'dan gelen veri:", data); 
+                setAllChatRooms(data);
             })
             .catch((err) => console.error("[Chatscreen] Sohbet listesi alınamadı:", err));
     }, [currentUser, setAllChatRooms, BaseUrl]);
 
-    // Ekran her focus olduğunda sohbet listesini yeniden çek
+    // Ekran ilk yüklendiğinde ve focus olduğunda sohbet listesini çek
     useFocusEffect(
         useCallback(() => {
-            console.log("[Chatscreen] Ekran focus oldu, sohbetler çekiliyor...");
-            fetchConversations();
+            // console.log("[Chatscreen] Ekran focus oldu, ilk sohbetler çekiliyor...");
+            if (currentUser) { // currentUser varsa devam et
+                fetchConversations();
+                socket.emit("login", currentUser); // Kullanıcıyı socket'e login et
+                console.log(`[Chatscreen] Socket: login event emitted for ${currentUser}`);
+            }
 
-            // İsteğe bağlı: Eğer socket bağlantısı kopmuşsa yeniden bağlanmayı deneyebiliriz
-            // if (!socket.connected) {
-            //     console.log("[Chatscreen] Socket bağlantısı yok, yeniden bağlanılıyor...");
-            //     socket.connect();
-            // }
-            
-            // İsteğe bağlı: Ekran blur olduğunda bir temizlik fonksiyonu
-            return () => {
-                console.log("[Chatscreen] Ekran blur oldu.");
-                // Örneğin, belirli listener'ları kaldırmak veya başka temizlik işlemleri
+            // `conversation_updated` olayını dinle
+            const handleConversationUpdate = (updatedConversation) => {
+                console.log("[Chatscreen] Socket: conversation_updated alındı:", updatedConversation);
+                setAllChatRooms(prevChatRooms => {
+                    const existingRoomIndex = prevChatRooms.findIndex(
+                        room => room.conversation_id === updatedConversation.conversation_id
+                    );
+                    let newChatRooms;
+                    if (existingRoomIndex !== -1) {
+                        // Varolan sohbeti güncelle
+                        newChatRooms = [...prevChatRooms];
+                        newChatRooms[existingRoomIndex] = {
+                            ...newChatRooms[existingRoomIndex], // Önceki bilgileri koru
+                            last_message_text: updatedConversation.last_message_text,
+                            last_message_image_url: updatedConversation.last_message_image_url,
+                            last_message_sender_id: updatedConversation.last_message_sender_id,
+                            last_message_timestamp: updatedConversation.last_message_timestamp,
+                            // Partner bilgileri de güncellenebilir, backend'den geliyorsa
+                            partner_username: updatedConversation.partner_username,
+                            partner_profile_image_url: updatedConversation.partner_profile_image_url,
+                        };
+                    } else {
+                        // Yeni bir sohbetse (nadiren olmalı, genelde fetchConversations halleder)
+                        // Ancak backend'den gelen veri tam bir sohbet öğesi ise eklenebilir.
+                        // Bu senaryo için backend'den gelen verinin Chatcomponent'in beklediği tüm alanları içerdiğinden emin olun.
+                        console.log("[Chatscreen] Socket: Yeni bir sohbet öğesi olarak ekleniyor (beklenmedik olabilir).");
+                        newChatRooms = [updatedConversation, ...prevChatRooms]; 
+                    }
+                    // Son mesaja göre sırala (en yeni en üstte)
+                    return newChatRooms.sort((a, b) => 
+                        new Date(b.last_message_timestamp) - new Date(a.last_message_timestamp)
+                    );
+                });
             };
-        }, [fetchConversations])
+
+            socket.on("conversation_updated", handleConversationUpdate);
+            console.log("[Chatscreen] Socket: 'conversation_updated' dinleyicisi eklendi.");
+
+            // Ekran blur olduğunda veya component unmount olduğunda dinleyiciyi kaldır
+            return () => {
+                console.log("[Chatscreen] Ekran blur/unmount, 'conversation_updated' dinleyicisi kaldırılıyor.");
+                socket.off("conversation_updated", handleConversationUpdate);
+            };
+        }, [fetchConversations, setAllChatRooms, socket]) // socket'i dependency array'e ekledik
     );
 
     useEffect(() => {
@@ -177,24 +211,10 @@ export default function Chatscreen({ navigation }) {
     
     // Sohbete tıklama animasyonu
     const handleChatPress = (item) => {
-        Animated.sequence([
-            Animated.spring(buttonScale, {
-                toValue: 0.95,
-                friction: 5,
-                useNativeDriver: true,
-                duration: 100,
-            }),
-            Animated.spring(buttonScale, {
-                toValue: 1,
-                friction: 3,
-                useNativeDriver: true,
-            })
-        ]).start(() => {
-            navigation.navigate("Messagescreen", {
-                conversationId: item.conversation_id,
-                partnerUsername: item.partner_username,
-                partner_profile_image_url: item.partner_profile_image_url, 
-            });
+        navigation.navigate("Messagescreen", {
+            conversationId: item.conversation_id,
+            partnerUsername: item.partner_username,
+            partner_profile_image_url: item.partner_profile_image_url, 
         });
     };
 
