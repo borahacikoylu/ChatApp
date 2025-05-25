@@ -12,3 +12,16 @@ export const socket = io(
         transports: ["websocket"],
     }
 );
+
+/*import { Platform } from "react-native";
+import { io } from "socket.io-client";
+
+// Macbook'un IP'si (hotspot üzerinden aldığın IP)
+const LOCAL_HOST_IP = "http://172.20.10.5:3000";
+
+export const BaseUrl = LOCAL_HOST_IP;
+
+export const socket = io(LOCAL_HOST_IP, {
+    transports: ["websocket"],
+});
+*/
