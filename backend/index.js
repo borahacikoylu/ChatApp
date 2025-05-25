@@ -228,3 +228,41 @@ app.get("/get-profile-image", async (req, res) => {
         res.status(500).json({ message: "Sunucu hatası" });
     }
 });
+
+app.post("/change-password", async (req, res) => {
+    const { username, currentPassword, newPassword } = req.body;
+
+    if (!username || !currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Eksik bilgi: Kullanıcı adı, mevcut şifre ve yeni şifre gereklidir." });
+    }
+
+    try {
+        const [rows] = await db.execute(
+            "SELECT password FROM users WHERE username = ?",
+            [username]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Kullanıcı bulunamadı." });
+        }
+
+        const user = rows[0];
+
+        // Mevcut şifreyi kontrol et (Basit bir karşılaştırma, normalde hashlenmiş şifre kontrolü yapılmalı)
+        if (user.password !== currentPassword) {
+            return res.status(401).json({ message: "Mevcut şifre yanlış." });
+        }
+
+        // Yeni şifreyi güncelle
+        await db.execute(
+            "UPDATE users SET password = ? WHERE username = ?",
+            [newPassword, username]
+        );
+
+        res.json({ message: "Şifre başarıyla güncellendi." });
+
+    } catch (err) {
+        console.error("Şifre değiştirme hatası:", err);
+        res.status(500).json({ message: "Sunucu hatası." });
+    }
+});

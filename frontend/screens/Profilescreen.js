@@ -8,6 +8,8 @@ import {
     ActivityIndicator,
     Alert,
     SafeAreaView,
+    TextInput,
+    ScrollView,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { GlobalContext } from "../context";
@@ -22,6 +24,10 @@ export default function Profilescreen({ navigation }) {
     const { currentUser } = useContext(GlobalContext);
     const [imageUrl, setImageUrl] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmNewPassword, setConfirmNewPassword] = useState("");
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
 
     useEffect(() => {
         const fetchProfileImage = async () => {
@@ -95,6 +101,48 @@ export default function Profilescreen({ navigation }) {
         }
     };
 
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            Alert.alert("Hata", "Lütfen tüm şifre alanlarını doldurun.");
+            return;
+        }
+        if (newPassword !== confirmNewPassword) {
+            Alert.alert("Hata", "Yeni şifreler eşleşmiyor.");
+            return;
+        }
+        if (newPassword.length < 6) {
+            Alert.alert("Hata", "Yeni şifre en az 6 karakter olmalıdır.");
+            return;
+        }
+
+        setIsChangingPassword(true);
+        try {
+            const response = await fetch(`${BaseUrl}/change-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: currentUser,
+                    currentPassword,
+                    newPassword,
+                }),
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                Alert.alert("Başarılı", data.message);
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmNewPassword("");
+            } else {
+                Alert.alert("Hata", data.message || "Şifre değiştirilemedi.");
+            }
+        } catch (error) {
+            Alert.alert("Hata", "Bir sorun oluştu. Lütfen tekrar deneyin.");
+            console.error("Change password error:", error);
+        }
+        setIsChangingPassword(false);
+    };
+
     return (
         <SafeAreaView style={styles.wrapper}>
             <LinearGradient
@@ -111,29 +159,69 @@ export default function Profilescreen({ navigation }) {
                 <View style={{ width: 24 }} />
             </LinearGradient>
 
-            <View style={styles.content}>
-                {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.avatar} />
-                ) : (
-                    <Ionicons name="person-circle-outline" size={120} color="#ccc" />
-                )}
-
-                <Text style={styles.username}>{currentUser}</Text>
-
-                <TouchableOpacity style={styles.button} onPress={pickImageAndUpload}>
-                    {uploading ? (
-                        <ActivityIndicator color="#fff" />
+            <ScrollView style={styles.scrollView}>
+                <View style={styles.content}>
+                    {imageUrl ? (
+                        <Image source={{ uri: imageUrl }} style={styles.avatar} />
                     ) : (
-                        <Text style={styles.buttonText}>Fotoğraf Yükle</Text>
+                        <Ionicons name="person-circle-outline" size={120} color="#ccc" />
                     )}
-                </TouchableOpacity>
-            </View>
+
+                    <Text style={styles.username}>{currentUser}</Text>
+
+                    <TouchableOpacity style={styles.button} onPress={pickImageAndUpload}>
+                        {uploading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.buttonText}>Fotoğraf Yükle</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <View style={styles.passwordChangeContainer}>
+                        <Text style={styles.sectionTitle}>Şifre Değiştir</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Mevcut Şifre"
+                            secureTextEntry
+                            value={currentPassword}
+                            onChangeText={setCurrentPassword}
+                            placeholderTextColor="#888"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Yeni Şifre"
+                            secureTextEntry
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            placeholderTextColor="#888"
+                        />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Yeni Şifre Tekrar"
+                            secureTextEntry
+                            value={confirmNewPassword}
+                            onChangeText={setConfirmNewPassword}
+                            placeholderTextColor="#888"
+                        />
+                        <TouchableOpacity style={styles.button} onPress={handleChangePassword} disabled={isChangingPassword}>
+                            {isChangingPassword ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.buttonText}>Şifreyi Değiştir</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     wrapper: { flex: 1, backgroundColor: "#F5F7FA" },
+    scrollView: {
+        flex: 1,
+    },
     header: {
         paddingTop: 60,
         paddingBottom: 20,
@@ -163,17 +251,49 @@ const styles = StyleSheet.create({
     username: {
         fontSize: 20,
         fontWeight: "bold",
-        marginBottom: 30,
+        marginBottom: 20,
     },
     button: {
         backgroundColor: "#5D5FEF",
         paddingVertical: 12,
         paddingHorizontal: 24,
         borderRadius: 25,
+        marginTop: 10,
+        width: '80%',
+        alignItems: 'center',
     },
     buttonText: {
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
+    },
+    passwordChangeContainer: {
+        width: '90%',
+        marginTop: 30,
+        padding: 20,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        alignItems: 'center',
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        color: '#333',
+    },
+    input: {
+        width: '100%',
+        height: 50,
+        backgroundColor: '#F0F0F0',
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        fontSize: 16,
+        marginBottom: 15,
+        color: '#333',
     },
 });
