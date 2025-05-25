@@ -75,20 +75,38 @@ app.get("/my-conversations", async (req, res) => {
         const [[user]] = await db.execute("SELECT id FROM users WHERE username = ?", [username]);
         if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
-        const [rows] = await db.execute(`
-            SELECT c.id AS conversation_id,
-                   u.username AS partner_username,
-                   u.profile_image_url AS partner_profile_image_url
+        // Her bir sohbet için son mesajı da getiren sorgu
+        const [conversations] = await db.execute(`
+            SELECT 
+                c.id AS conversation_id,
+                u.id AS partner_id,
+                u.username AS partner_username,
+                u.profile_image_url AS partner_profile_image_url,
+                lm.text AS last_message_text,
+                lm.image_url AS last_message_image_url,
+                lm.sender_id AS last_message_sender_id,
+                lm.timestamp AS last_message_timestamp
             FROM conversations c
-            JOIN users u ON (u.id = IF(c.user1_id = ?, c.user2_id, c.user1_id))
+            JOIN users u ON u.id = IF(c.user1_id = ?, c.user2_id, c.user1_id)
+            LEFT JOIN (
+                SELECT 
+                    conversation_id,
+                    text,
+                    image_url,
+                    sender_id,
+                    timestamp,
+                    ROW_NUMBER() OVER (PARTITION BY conversation_id ORDER BY timestamp DESC) as rn
+                FROM messages
+            ) lm ON lm.conversation_id = c.id AND lm.rn = 1
             WHERE c.user1_id = ? OR c.user2_id = ?
+            ORDER BY lm.timestamp DESC, c.id DESC; 
         `, [user.id, user.id, user.id]);
 
-        console.log("[/my-conversations] rows:", rows); // 🔍 BU SATIRI EKLE
+        console.log("[/my-conversations] rows with last messages:", conversations); 
 
-        res.json(rows);
+        res.json(conversations);
     } catch (err) {
-        console.error(err);
+        console.error("[/my-conversations] error:", err); // Hata logunu özelleştir
         res.status(500).json({ message: "Sunucu hatası" });
     }
 });

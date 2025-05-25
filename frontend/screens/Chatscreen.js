@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import {
     FlatList,
     Pressable,
@@ -16,7 +16,7 @@ import Chatcomponent from "../components/Chatcomponent";
 import NewGroupModal from "../components/NewChatModal"; // istersen NewChatModal yap
 import { socket, BaseUrl } from "../utils";
 import { LinearGradient } from 'expo-linear-gradient';
-import { CommonActions } from '@react-navigation/native';
+import { CommonActions, useFocusEffect } from '@react-navigation/native';
 
 export default function Chatscreen({ navigation }) {
     const {
@@ -78,19 +78,41 @@ export default function Chatscreen({ navigation }) {
         );
     }
 
-    useEffect(() => {
+    // Sohbet listesini çeken fonksiyon
+    const fetchConversations = useCallback(() => {
         if (!currentUser) return;
+        console.log("[Chatscreen] fetchConversations çağrıldı, kullanıcı:", currentUser);
 
         socket.emit("login", currentUser);
 
         fetch(`${BaseUrl}/my-conversations?username=${currentUser}`)
             .then((res) => res.json())
             .then((data) => {
-                console.log("[setAllChatRooms] gelen veri:", data);
-                setAllChatRooms(data); // [{ conversation_id, partner_username }]
+                console.log("[Chatscreen] setAllChatRooms için /my-conversations'dan gelen veri:", data);
+                setAllChatRooms(data); 
             })
-            .catch((err) => console.error("Sohbet listesi alınamadı", err));
-    }, [currentUser]);
+            .catch((err) => console.error("[Chatscreen] Sohbet listesi alınamadı:", err));
+    }, [currentUser, setAllChatRooms, BaseUrl]);
+
+    // Ekran her focus olduğunda sohbet listesini yeniden çek
+    useFocusEffect(
+        useCallback(() => {
+            console.log("[Chatscreen] Ekran focus oldu, sohbetler çekiliyor...");
+            fetchConversations();
+
+            // İsteğe bağlı: Eğer socket bağlantısı kopmuşsa yeniden bağlanmayı deneyebiliriz
+            // if (!socket.connected) {
+            //     console.log("[Chatscreen] Socket bağlantısı yok, yeniden bağlanılıyor...");
+            //     socket.connect();
+            // }
+            
+            // İsteğe bağlı: Ekran blur olduğunda bir temizlik fonksiyonu
+            return () => {
+                console.log("[Chatscreen] Ekran blur oldu.");
+                // Örneğin, belirli listener'ları kaldırmak veya başka temizlik işlemleri
+            };
+        }, [fetchConversations])
+    );
 
     useEffect(() => {
         if (currentUser.trim() === "") navigation.navigate("Homescreen");
@@ -171,7 +193,7 @@ export default function Chatscreen({ navigation }) {
             navigation.navigate("Messagescreen", {
                 conversationId: item.conversation_id,
                 partnerUsername: item.partner_username,
-                partner_profile_image_url: item.partner_profile_image_url, // ✅ EKLENDİ
+                partner_profile_image_url: item.partner_profile_image_url, 
             });
         });
     };
