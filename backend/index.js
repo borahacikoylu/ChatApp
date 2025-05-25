@@ -29,19 +29,30 @@ let db;
 
 // Kullanıcı kayıt
 app.post("/register", async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, imageUrl } = req.body;
     if (!username || !password)
-        return res.status(400).json({ message: "Eksik bilgi" });
+        return res.status(400).json({ message: "Eksik bilgi: Kullanıcı adı ve şifre gereklidir." });
 
-    const [rows] = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
-    if (rows.length > 0)
-        return res.status(409).json({ message: "Kullanıcı zaten var" });
+    try {
+        const [rows] = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
+        if (rows.length > 0)
+            return res.status(409).json({ message: "Kullanıcı zaten var" });
 
-    await db.execute("INSERT INTO users (username, password) VALUES (?, ?)", [username, password]);
-    
-    // Kullanıcı bilgilerini döndür
-    const [user] = await db.execute("SELECT * FROM users WHERE username = ?", [username]);
-    res.json({ message: "Kayıt başarılı", user: user[0] });
+        await db.execute(
+            "INSERT INTO users (username, password, profile_image_url) VALUES (?, ?, ?)",
+            [username, password, imageUrl || null]
+        );
+        
+        const [userRows] = await db.execute("SELECT id, username, profile_image_url FROM users WHERE username = ?", [username]);
+        if (userRows.length > 0) {
+            res.json({ message: "Kayıt başarılı", user: userRows[0] });
+        } else {
+            res.status(500).json({ message: "Kayıt sonrası kullanıcı bulunamadı." });
+        }
+    } catch (error) {
+        console.error("Kayıt sırasında hata:", error);
+        res.status(500).json({ message: "Sunucu hatası: Kayıt yapılamadı." });
+    }
 });
 
 // Kullanıcı giriş

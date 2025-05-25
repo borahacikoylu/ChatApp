@@ -13,6 +13,8 @@ import {
     TouchableWithoutFeedback,
     BackHandler,
     Animated,
+    Image,
+    ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import { useContext, useEffect, useRef, useState } from "react";
@@ -20,6 +22,10 @@ import { GlobalContext } from "../context";
 import { BaseUrl } from "../utils";
 import { Ionicons } from "@expo/vector-icons";
 import { CommonActions } from '@react-navigation/native';
+import * as ImagePicker from "expo-image-picker";
+
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwoyqpbqk/image/upload";
+const UPLOAD_PRESET = "ChatApp";
 
 export default function Homescreen({ navigation }) {
     const {
@@ -33,6 +39,13 @@ export default function Homescreen({ navigation }) {
         password,
         setPassword,
     } = useContext(GlobalContext);
+
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [regUsername, setRegUsername] = useState("");
+    const [regPassword, setRegPassword] = useState("");
+    const [regConfirmPassword, setRegConfirmPassword] = useState("");
+    const [regImageUri, setRegImageUri] = useState(null);
+    const [regUploading, setRegUploading] = useState(false);
 
     // Buton animasyonları için değerler
     const buttonScale = useRef(new Animated.Value(1)).current;
@@ -63,14 +76,18 @@ export default function Homescreen({ navigation }) {
         }).start();
     };
 
-    async function handleRegisterAndSignIn(isLogin) {
+    async function handleLogin() {
         if (currentUserName.trim() === "") {
-            Alert.alert("User name field is empty");
+            Alert.alert("Kullanıcı adı boş olamaz");
+            return;
+        }
+        if (password.trim() === "") {
+            Alert.alert("Şifre boş olamaz");
             return;
         }
 
         try {
-            const response = await fetch(`${BaseUrl}/${isLogin ? "login" : "register"}`, {
+            const response = await fetch(`${BaseUrl}/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -84,9 +101,7 @@ export default function Homescreen({ navigation }) {
             if (response.ok) {
                 setCurrentUser(data.user.username);
                 setCurrentUserId(data.user.id);
-                setCurrentUserName("");
                 
-                // Giriş başarılı olduğunda navigation stack'i sıfırla
                 navigation.dispatch(
                     CommonActions.reset({
                         index: 0,
@@ -94,13 +109,12 @@ export default function Homescreen({ navigation }) {
                     })
                 );
             } else {
-                Alert.alert(data.message || "İşlem başarısız");
+                Alert.alert("Giriş Hatası", data.message || "Giriş işlemi başarısız oldu.");
             }
         } catch (err) {
-            console.error(err);
-            Alert.alert("Sunucuya bağlanılamadı.");
+            console.error("Login error:",err);
+            Alert.alert("Bağlantı Hatası", "Sunucuya bağlanılamadı.");
         }
-
         Keyboard.dismiss();
     }
 
@@ -149,6 +163,116 @@ export default function Homescreen({ navigation }) {
 
         return () => clearTimeout(animationTimeout);
     }, [showLoginView]);
+
+    // Fotoğraf seçme fonksiyonu (Kayıt için)
+    const pickImageForRegistration = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+            Alert.alert("İzin gerekli", "Galeriye erişim izni verilmedi.");
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.7, // Kaliteyi biraz düşürerek yükleme süresini azaltabiliriz
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            setRegImageUri(result.assets[0].uri);
+        } else {
+            // Kullanıcı fotoğraf seçmeyi iptal ederse veya bir sorun olursa
+            // setRegImageUri(null); // Zaten null ise bir şey yapmaya gerek yok veya bir uyarı verilebilir
+        }
+    };
+
+    // Asıl kayıt işlemini yapan fonksiyon
+    const handleActualRegister = async () => {
+        if (!regUsername.trim() || !regPassword.trim() || !regConfirmPassword.trim()) {
+            Alert.alert("Eksik Bilgi", "Lütfen tüm kullanıcı adı ve şifre alanlarını doldurun.");
+            return;
+        }
+        if (regPassword !== regConfirmPassword) {
+            Alert.alert("Şifre Hatası", "Girilen şifreler eşleşmiyor.");
+            return;
+        }
+        if (regPassword.length < 6) { // Örnek minimum şifre uzunluğu
+            Alert.alert("Şifre Çok Kısa", "Şifreniz en az 6 karakter olmalıdır.");
+            return;
+        }
+
+        setRegUploading(true); // Yükleme başladığını belirt
+        let uploadedImageUrl = null;
+
+        try {
+            // Eğer kullanıcı bir fotoğraf seçtiyse, Cloudinary'e yükle
+            if (regImageUri) {
+                const formData = new FormData();
+                formData.append("file", {
+                    uri: regImageUri,
+                    name: `profile_${Date.now()}.jpg`, // Benzersiz bir isim
+                    type: "image/jpeg", 
+                });
+                formData.append("upload_preset", UPLOAD_PRESET);
+
+                const uploadRes = await fetch(CLOUDINARY_URL, {
+                    method: "POST",
+                    body: formData,
+                });
+                const uploadData = await uploadRes.json();
+                
+                if (uploadData.secure_url) {
+                    uploadedImageUrl = uploadData.secure_url;
+                } else {
+                    throw new Error("Cloudinary yükleme hatası veya URL alınamadı.");
+                }
+            }
+
+            // Backend'e kayıt isteği gönder
+            const response = await fetch(`${BaseUrl}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: regUsername,
+                    password: regPassword,
+                    imageUrl: uploadedImageUrl, // Yüklenmiş URL veya null
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Alert.alert("Kayıt Başarılı", "Hesabınız oluşturuldu! Giriş yapabilirsiniz.");
+                // Global context'i doğrudan güncellemek yerine, kullanıcıyı giriş yapmaya yönlendirmek daha iyi olabilir.
+                // Veya doğrudan giriş yapmasını sağlayabiliriz:
+                // setCurrentUser(data.user.username);
+                // setCurrentUserId(data.user.id);
+                // navigation.dispatch(
+                // CommonActions.reset({
+                // index: 0,
+                // routes: [{ name: 'Chatscreen' }],
+                // })
+                // );
+                
+                // Kayıt sonrası state'leri temizle ve giriş ekranına/ana ekrana yönlendir
+                setIsRegistering(false);
+                setShowLoginView(true); // Giriş formunu göster
+                setRegUsername("");
+                setRegPassword("");
+                setRegConfirmPassword("");
+                setRegImageUri(null);
+
+            } else {
+                Alert.alert("Kayıt Hatası", data.message || "Kayıt işlemi başarısız oldu.");
+            }
+
+        } catch (err) {
+            console.error("Registration error:", err);
+            Alert.alert("Hata", "Kayıt sırasında bir sorun oluştu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.");
+        }
+        setRegUploading(false); // Yükleme bitti
+        Keyboard.dismiss();
+    };
 
     return (
         <SafeAreaView style={styles.mainWrapper}>
@@ -209,7 +333,7 @@ export default function Homescreen({ navigation }) {
                                 
                                     <Animated.View style={buttonAnimatedStyle}>
                                         <TouchableOpacity
-                                            onPress={() => handleRegisterAndSignIn(true)}
+                                            onPress={handleLogin}
                                             onPressIn={handlePressIn}
                                             onPressOut={handlePressOut}
                                             style={styles.loginButton}
@@ -218,7 +342,7 @@ export default function Homescreen({ navigation }) {
                                         </TouchableOpacity>
                                     </Animated.View>
                                     
-                                    <TouchableOpacity onPress={() => handleRegisterAndSignIn(false)} style={styles.registerButton}>
+                                    <TouchableOpacity onPress={() => { setShowLoginView(false); setIsRegistering(true); }} style={styles.registerButton}>
                                         <Text style={styles.registerText}>
                                             Hesabın yok mu? <Text style={styles.registerLink}>Kaydol</Text>
                                         </Text>
@@ -226,6 +350,7 @@ export default function Homescreen({ navigation }) {
                                 </Animated.View>
                             </View>
                         ) : (
+                            !isRegistering && (
                             <View style={styles.infoBlock}>
                                 <Animated.View style={[styles.logoContainer, { opacity: logoOpacity }]}>
                                     <Ionicons name="chatbubbles" size={80} color="#5D5FEF" />
@@ -248,11 +373,85 @@ export default function Homescreen({ navigation }) {
                                     <TouchableOpacity
                                         style={styles.button}
                                         onPress={() => setShowLoginView(true)}
-                                        onPressIn={handlePressIn}
-                                        onPressOut={handlePressOut}
                                     >
-                                        <Text style={styles.buttonText}>Başla</Text>
-                                        <Ionicons name="arrow-forward" size={20} color="#FFFFFF" style={styles.buttonIcon} />
+                                        <Text style={styles.buttonText}>Giriş Yap</Text>
+                                    </TouchableOpacity>
+                                </Animated.View>
+                                <TouchableOpacity onPress={() => setIsRegistering(true)} style={[styles.button, {marginTop: 20, backgroundColor: '#4A4C7D'}]}>
+                                    <Text style={styles.buttonText}>Kaydol</Text>
+                                </TouchableOpacity>
+                            </View>
+                            )
+                        )}
+                        {isRegistering && (
+                            <View style={styles.loginContainer}>
+                                <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, marginBottom: 20 }]}>
+                                    <Ionicons name="person-add-outline" size={60} color="#5D5FEF" />
+                                    <Text style={styles.appName}>Yeni Hesap Oluştur</Text>
+                                </Animated.View>
+
+                                <Animated.View style={[styles.inputContainer, { opacity: loginFormOpacity }]}>
+                                    <View style={styles.inputWrapper}>
+                                        <Ionicons name="person-outline" size={22} color="#9DA3B4" style={styles.inputIcon} />
+                                        <TextInput
+                                            placeholder="Kullanıcı Adı"
+                                            placeholderTextColor="#9DA3B4"
+                                            style={styles.input}
+                                            value={regUsername}
+                                            onChangeText={setRegUsername}
+                                        />
+                                    </View>
+                                    <View style={styles.inputWrapper}>
+                                        <Ionicons name="lock-closed-outline" size={22} color="#9DA3B4" style={styles.inputIcon} />
+                                        <TextInput
+                                            placeholder="Şifre"
+                                            placeholderTextColor="#9DA3B4"
+                                            style={styles.input}
+                                            secureTextEntry
+                                            value={regPassword}
+                                            onChangeText={setRegPassword}
+                                        />
+                                    </View>
+                                    <View style={styles.inputWrapper}>
+                                        <Ionicons name="lock-closed-outline" size={22} color="#9DA3B4" style={styles.inputIcon} />
+                                        <TextInput
+                                            placeholder="Şifre Tekrar"
+                                            placeholderTextColor="#9DA3B4"
+                                            style={styles.input}
+                                            secureTextEntry
+                                            value={regConfirmPassword}
+                                            onChangeText={setRegConfirmPassword}
+                                        />
+                                    </View>
+
+                                    <TouchableOpacity onPress={pickImageForRegistration} style={styles.imagePickerButton}>
+                                        <Ionicons name="camera-outline" size={22} color="#FFF" style={{marginRight: 10}} />
+                                        <Text style={styles.imagePickerButtonText}>
+                                            {regImageUri ? "Fotoğraf Seçildi" : "Profil Fotoğrafı Seç"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                    {regImageUri && (
+                                        <Image source={{ uri: regImageUri }} style={styles.selectedImage} />
+                                    )}
+
+                                    <Animated.View style={[buttonAnimatedStyle, { marginTop: 25 }]}>
+                                        <TouchableOpacity
+                                            onPress={handleActualRegister}
+                                            onPressIn={handlePressIn}
+                                            onPressOut={handlePressOut}
+                                            style={styles.loginButton}
+                                            disabled={regUploading}
+                                        >
+                                            {regUploading ? (
+                                                <ActivityIndicator color="#fff" />
+                                            ) : (
+                                                <Text style={styles.loginButtonText}>Kaydı Tamamla</Text>
+                                            )}
+                                        </TouchableOpacity>
+                                    </Animated.View>
+                                    
+                                    <TouchableOpacity onPress={() => {setIsRegistering(false); setShowLoginView(false);}} style={styles.registerButton}>
+                                        <Text style={styles.registerText}>Giriş Ekranına Dön</Text>
                                     </TouchableOpacity>
                                 </Animated.View>
                             </View>
@@ -404,7 +603,29 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginRight: 8,
     },
-    buttonIcon: {
-        marginLeft: 5,
+    imagePickerButton: {
+        flexDirection: 'row',
+        backgroundColor: '#5D5FEF',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 25,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 15,
+        opacity: 0.9,
     },
+    imagePickerButtonText: {
+        color: '#FFF',
+        fontSize: 15,
+        fontWeight: '500',
+    },
+    selectedImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        marginTop: 15,
+        alignSelf: 'center',
+        borderWidth: 2,
+        borderColor: '#5D5FEF',
+    }
 });
