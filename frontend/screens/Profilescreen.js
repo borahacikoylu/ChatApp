@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
     View,
     Text,
@@ -22,6 +22,26 @@ export default function Profilescreen({ navigation }) {
     const { currentUser } = useContext(GlobalContext);
     const [imageUrl, setImageUrl] = useState(null);
     const [uploading, setUploading] = useState(false);
+
+    useEffect(() => {
+        const fetchProfileImage = async () => {
+            try {
+                const response = await fetch(`${BaseUrl}/get-profile-image?username=${currentUser}`);
+                const data = await response.json();
+                if (data.imageUrl) {
+                    setImageUrl(data.imageUrl);
+                }
+            } catch (error) {
+                console.error("Error fetching profile image:", error);
+                // Optionally, show an alert to the user
+                // Alert.alert("Hata", "Profil fotoğrafı yüklenemedi.");
+            }
+        };
+
+        if (currentUser) {
+            fetchProfileImage();
+        }
+    }, [currentUser]);
 
     const pickImageAndUpload = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();

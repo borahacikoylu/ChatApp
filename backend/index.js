@@ -205,3 +205,26 @@ app.post("/update-profile-image", async (req, res) => {
         res.status(500).json({ message: "Sunucu hatası" });
     }
 });
+
+app.get("/get-profile-image", async (req, res) => {
+    const { username } = req.query;
+    if (!username) {
+        return res.status(400).json({ message: "Kullanıcı adı gerekli" });
+    }
+
+    try {
+        const [rows] = await db.execute(
+            "SELECT profile_image_url FROM users WHERE username = ?",
+            [username]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+        }
+
+        res.json({ imageUrl: rows[0].profile_image_url });
+    } catch (err) {
+        console.error("Profil fotoğrafı getirme hatası:", err);
+        res.status(500).json({ message: "Sunucu hatası" });
+    }
+});
