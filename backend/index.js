@@ -160,22 +160,29 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("send_message", async ({ conversationId, fromUser, message }) => {
+    socket.on("send_message", async ({ conversationId, fromUser, message, imageUrl }) => {
         try {
-            console.log("📩 Yeni mesaj:", { conversationId, fromUser, message });
+            console.log("📩 Yeni mesaj:", { conversationId, fromUser, message, imageUrl });
 
             const [[sender]] = await db.execute("SELECT id FROM users WHERE username = ?", [fromUser]);
             if (!sender) return;
 
+            if (!message && !imageUrl) {
+                console.log("Boş mesaj veya fotoğraf gönderilmeye çalışıldı.");
+                return;
+            }
+
             const [result] = await db.execute(
-                "INSERT INTO messages (conversation_id, sender_id, text) VALUES (?, ?, ?)",
-                [conversationId, sender.id, message]
+                "INSERT INTO messages (conversation_id, sender_id, text, image_url) VALUES (?, ?, ?, ?)",
+                [conversationId, sender.id, message || null, imageUrl || null]
             );
 
             const msgData = {
                 id: result.insertId,
+                conversation_id: conversationId,
                 sender_id: sender.id,
-                text: message,
+                text: message || null,
+                image_url: imageUrl || null,
                 timestamp: new Date(),
             };
 

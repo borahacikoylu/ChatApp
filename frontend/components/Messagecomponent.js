@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Image } from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity, Linking, Dimensions } from "react-native";
 
 export default function Messagecomponent({ currentUserId, item, currentUserImage, partnerUserImage }) {
     const isOwnMessage = item.sender_id === currentUserId;
@@ -7,6 +7,24 @@ export default function Messagecomponent({ currentUserId, item, currentUserImage
         : "";
 
     const userImage = isOwnMessage ? currentUserImage : partnerUserImage;
+    const hasImage = !!item.image_url;
+    const hasText = !!item.text;
+
+    // Dinamik stilleri burada oluşturalım
+    const bubbleStyle = [
+        styles.messageBubble,
+        isOwnMessage ? styles.ownBubble : styles.otherBubble,
+    ];
+
+    if (hasImage && !hasText) {
+        bubbleStyle.push(styles.imageOnlyBubble);
+    }
+
+    const openImageFullscreen = () => {
+        if (item.image_url) {
+            Linking.openURL(item.image_url).catch(err => console.error("URL açılamadı", err));
+        }
+    };
 
     return (
         <View style={[styles.messageContainer, isOwnMessage ? styles.rightAlign : styles.leftAlign]}>
@@ -15,14 +33,22 @@ export default function Messagecomponent({ currentUserId, item, currentUserImage
             )}
             <View style={[styles.messageWrapper, isOwnMessage ? styles.right : styles.left]}>
                 <View
-                    style={[
-                        styles.messageBubble,
-                        isOwnMessage ? styles.ownBubble : styles.otherBubble,
-                    ]}
+                    style={bubbleStyle}
                 >
-                    <Text style={isOwnMessage ? styles.ownText : styles.otherText}>
-                        {item.text}
-                    </Text>
+                    {hasImage && (
+                        <TouchableOpacity onPress={openImageFullscreen}>
+                            <Image 
+                                source={{ uri: item.image_url }} 
+                                style={styles.messageImage} 
+                                resizeMode="cover"
+                            />
+                        </TouchableOpacity>
+                    )}
+                    {hasText && (
+                        <Text style={isOwnMessage ? styles.ownText : styles.otherText}>
+                            {item.text}
+                        </Text>
+                    )}
                 </View>
                 <Text style={[styles.messageTime, isOwnMessage ? styles.timeRight : styles.timeLeft]}>{formattedTime}</Text>
             </View>
@@ -32,6 +58,8 @@ export default function Messagecomponent({ currentUserId, item, currentUserImage
         </View>
     );
 }
+
+const windowWidth = Dimensions.get('window').width;
 
 const styles = StyleSheet.create({
     messageContainer: {
@@ -64,6 +92,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10,
         borderRadius: 18,
+        overflow: 'hidden',
+    },
+    imageOnlyBubble: {
+        backgroundColor: 'transparent',
+        paddingHorizontal: 0,
+        paddingVertical: 0,
     },
     ownBubble: {
         backgroundColor: "#703efe",
@@ -78,6 +112,11 @@ const styles = StyleSheet.create({
     otherText: {
         color: "#000",
         fontSize: 15,
+    },
+    messageImage: {
+        width: windowWidth * 0.6,
+        height: windowWidth * 0.6 * (4/3),
+        borderRadius: 15,
     },
     messageTime: {
         fontSize: 11,

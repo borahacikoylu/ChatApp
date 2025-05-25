@@ -13,12 +13,19 @@ import {
     InputAccessoryView,
     Animated,
     Easing,
-    Image
+    Image,
+    Alert,
+    ActivityIndicator
 } from "react-native";
 import { GlobalContext } from "../context";
 import Messagecomponent from "../components/Messagecomponent";
-import { socket } from "../utils/index";
+import { socket, BaseUrl } from "../utils/index";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+
+// Cloudinary sabitleri (Homescreen.js'den alındı)
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dwoyqpbqk/image/upload";
+const UPLOAD_PRESET = "ChatApp";
 
 export default function Messagescreen({ route, navigation }) {
     console.log("[Messagescreen] Received route params:", JSON.stringify(route.params));
@@ -46,6 +53,7 @@ export default function Messagescreen({ route, navigation }) {
     const inputTranslateY = useRef(new Animated.Value(20)).current;
     const inputOpacity = useRef(new Animated.Value(0)).current;
     const [newMessageId, setNewMessageId] = useState(null);
+    const [isImageUploading, setIsImageUploading] = useState(false);
     
     // Mesaj animasyonları için
     const messageAnimations = useRef(new Map()).current;
@@ -128,16 +136,34 @@ export default function Messagescreen({ route, navigation }) {
         }
     }, [newMessageId]);
 
-    const handleAddNewMessage = () => {
+    const handleSendTextMessage = () => {
         if (!currentChatMesage.trim()) return;
 
         socket.emit("send_message", {
             fromUser: currentUser,
             conversationId,
             message: currentChatMesage,
+            imageUrl: null,
         });
+        animateSendButton();
+        setCurrentChatMessage("");
+        Keyboard.dismiss();
+    };
 
-        // Mesaj gönderme animasyonu
+    const handleSendImageMessage = async (imageUrl) => {
+        console.log("[handleSendImageMessage] Fotoğraf gönderiliyor, URL:", imageUrl);
+        const messageData = {
+            fromUser: currentUser,
+            conversationId,
+            message: null,
+            imageUrl: imageUrl,
+        };
+        console.log("[handleSendImageMessage] Socket'e gönderilecek veri:", JSON.stringify(messageData, null, 2));
+        socket.emit("send_message", messageData);
+        animateSendButton();
+    };
+    
+    const animateSendButton = () => {
         Animated.sequence([
             Animated.spring(buttonScale, {
                 toValue: 0.85,
@@ -152,24 +178,86 @@ export default function Messagescreen({ route, navigation }) {
                 useNativeDriver: true,
             }),
         ]).start();
+    };
 
-        setCurrentChatMessage("");
-        Keyboard.dismiss();
+    const pickAndUploadImage = async () => {
+        console.log("pickAndUploadImage fonksiyonu çağrıldı.");
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+            Alert.alert("İzin Gerekli", "Galeriye erişim izni verilmedi.");
+            console.log("Galeri izni verilmedi.");
+            return;
+        }
+
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.7,
+        });
+        console.log("ImagePicker sonucu:", JSON.stringify(result, null, 2));
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            const imageUri = result.assets[0].uri;
+            console.log("Seçilen fotoğraf URI'si:", imageUri);
+            setIsImageUploading(true);
+
+            const formData = new FormData();
+            formData.append("file", {
+                uri: imageUri,
+                name: `chatimg_${Date.now()}.jpg`,
+                type: "image/jpeg",
+            });
+            formData.append("upload_preset", UPLOAD_PRESET);
+            console.log("Cloudinary'e gönderilecek URI:", imageUri, "Preset:", UPLOAD_PRESET);
+
+            try {
+                console.log("Cloudinary'e yükleme deneniyor...");
+                const uploadRes = await fetch(CLOUDINARY_URL, {
+                    method: "POST",
+                    body: formData,
+                });
+                const data = await uploadRes.json();
+                console.log("Cloudinary yanıtı:", JSON.stringify(data, null, 2));
+
+                if (data.secure_url) {
+                    console.log("Cloudinary URL alındı:", data.secure_url);
+                    await handleSendImageMessage(data.secure_url);
+                } else {
+                    console.error("Cloudinary URL alınamadı. Yanıt:", data);
+                    throw new Error("Cloudinary URL alınamadı");
+                }
+            } catch (error) {
+                Alert.alert("Hata", "Fotoğraf yüklenirken bir sorun oluştu.");
+                console.error("Image upload error:", JSON.stringify(error, null, 2));
+            } finally {
+                setIsImageUploading(false);
+            }
+        } else {
+            console.log("Fotoğraf seçimi iptal edildi veya sonuç varlıkları boş.");
+        }
     };
 
     useEffect(() => {
         // ➕ Konuşma odasına katıl
+        console.log(`[useEffect] Konuşma odasına katılıyor: ${conversationId}`);
         socket.emit("join_conversation", conversationId);
 
         // 📜 Geçmiş mesajları çeker
         socket.on("conversation_history", (messages) => {
+            console.log("[socket.on] conversation_history alındı:", JSON.stringify(messages, null, 2));
             setAllChatMessages(messages);
         });
 
         // 📩 Yeni mesaj geldiğinde ekle
         socket.on("new_message", (msg) => {
-            setAllChatMessages((prev) => [...prev, msg]);
-            setNewMessageId(msg.id);
+            console.log("[socket.on] new_message alındı:", JSON.stringify(msg, null, 2));
+            if (msg.conversation_id === conversationId) {
+                console.log("[socket.on] Mesaj mevcut konuşmaya ait, listeye ekleniyor.");
+                setAllChatMessages((prevMessages) => [...prevMessages, msg]);
+                setNewMessageId(msg.id);
+            } else {
+                console.log("[socket.on] Mesaj farklı bir konuşmaya ait, listeye eklenmedi.", msg.conversation_id, conversationId);
+            }
         });
 
         // Temizlik
@@ -233,9 +321,21 @@ export default function Messagescreen({ route, navigation }) {
                 />
             </View>
 
+            <TouchableOpacity 
+                onPress={pickAndUploadImage} 
+                style={styles.imageButton}
+                disabled={isImageUploading}
+            >
+                {isImageUploading ? (
+                    <ActivityIndicator size="small" color="#5D5FEF" />
+                ) : (
+                    <Ionicons name="camera-outline" size={26} color="#5D5FEF" style={{opacity: 0.8}}/>
+                )}
+            </TouchableOpacity>
+
             <Animated.View style={buttonAnimatedStyle}>
                 <TouchableOpacity 
-                    onPress={handleAddNewMessage} 
+                    onPress={handleSendTextMessage}
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
                     style={styles.sendButton}
@@ -415,7 +515,13 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         fontSize: 16,
         color: "#2C2D5A",
-        maxHeight: 80,
+    },
+    imageButton: {
+        padding: 8,
+        marginHorizontal: 5,
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 48,
     },
     sendButton: {
         backgroundColor: "#5D5FEF",
